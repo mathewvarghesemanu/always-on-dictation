@@ -540,6 +540,14 @@ pub struct AppSettings {
     pub transcribe_gpu_device: Option<String>,
     #[serde(default)]
     pub extra_recording_buffer_ms: u64,
+    /// Always-on dictation: its shortcut keeps the microphone open and types
+    /// each stretch of speech once a pause ends it, until pressed again.
+    #[serde(default)]
+    pub continuous_dictation_enabled: bool,
+    /// How long a pause ends a stretch of always-on dictation. Read through
+    /// [`AppSettings::continuous_dictation_pause_ms`], which clamps it.
+    #[serde(default = "default_continuous_dictation_pause_ms")]
+    pub continuous_dictation_pause_ms: u64,
     #[serde(default = "default_vad_enabled")]
     pub vad_enabled: bool,
     /// Experimental detector implementation. Silero remains the stable default.
@@ -579,6 +587,10 @@ fn default_hold_threshold_ms() -> u64 {
 
 fn default_always_on_microphone() -> bool {
     false
+}
+
+fn default_continuous_dictation_pause_ms() -> u64 {
+    2000
 }
 
 fn default_translate_to_english() -> bool {
@@ -980,6 +992,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_post_process_shortcut.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_continuous_dictation_shortcut = "option+ctrl+space";
+    #[cfg(not(target_os = "macos"))]
+    let default_continuous_dictation_shortcut = "ctrl+alt+space";
+
+    bindings.insert(
+        "continuous_dictation".to_string(),
+        ShortcutBinding {
+            id: "continuous_dictation".to_string(),
+            name: "Always-On Dictation".to_string(),
+            description: "Starts or stops always-on dictation.".to_string(),
+            default_binding: default_continuous_dictation_shortcut.to_string(),
+            current_binding: default_continuous_dictation_shortcut.to_string(),
+        },
+    );
     bindings.insert(
         "cancel".to_string(),
         ShortcutBinding {
@@ -1052,6 +1079,8 @@ pub fn get_default_settings() -> AppSettings {
         transcribe_accelerator: TranscribeAcceleratorSetting::default(),
         transcribe_gpu_device: default_transcribe_gpu_device(),
         extra_recording_buffer_ms: 0,
+        continuous_dictation_enabled: false,
+        continuous_dictation_pause_ms: default_continuous_dictation_pause_ms(),
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
         long_form_chunking: default_long_form_chunking(),
@@ -1067,6 +1096,20 @@ impl Default for AppSettings {
     }
 }
 
+/// The always-on dictation pause bounds: shorter cuts sentences apart
+/// mid-thought, longer leaves text waiting too long to be typed.
+pub const CONTINUOUS_DICTATION_PAUSE_MS: std::ops::RangeInclusive<u64> = 500..=10_000;
+
+/// Whether a binding's shortcut should be registered. A feature's dedicated
+/// shortcut exists only while that feature is turned on.
+pub fn is_binding_enabled(id: &str, settings: &AppSettings) -> bool {
+    match id {
+        "transcribe_with_post_process" => settings.post_process_enabled,
+        "continuous_dictation" => settings.continuous_dictation_enabled,
+        _ => true,
+    }
+}
+
 /// The language detector's window bounds: below 2 s it guesses, and it only
 /// scores the first 30 s of what it's given.
 pub const LANGUAGE_DETECTION_WINDOW_SECS: std::ops::RangeInclusive<u32> = 2..=30;
@@ -1076,6 +1119,12 @@ impl AppSettings {
     pub fn language_detection_window_samples(&self) -> usize {
         let (min, max) = LANGUAGE_DETECTION_WINDOW_SECS.into_inner();
         self.language_detection_window_secs.clamp(min, max) as usize * 16_000
+    }
+
+    /// How long a pause ends a stretch of always-on dictation.
+    pub fn continuous_dictation_pause_ms(&self) -> u64 {
+        let (min, max) = CONTINUOUS_DICTATION_PAUSE_MS.into_inner();
+        self.continuous_dictation_pause_ms.clamp(min, max)
     }
 
     pub fn active_post_process_provider(&self) -> Option<&PostProcessProvider> {

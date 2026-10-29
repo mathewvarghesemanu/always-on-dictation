@@ -306,7 +306,8 @@ pub fn resume_all_shortcuts(app: &AppHandle) {
         if id == "cancel" {
             continue;
         }
-        if id == "transcribe_with_post_process" && !settings.post_process_enabled {
+        // Skip a feature's shortcut while the feature is off
+        if !settings::is_binding_enabled(id, &settings) {
             continue;
         }
         if let Err(e) = register_shortcut(app, binding.clone()) {
@@ -497,8 +498,8 @@ fn register_all_shortcuts_for_implementation(
             continue;
         }
 
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !current_settings.post_process_enabled {
+        // Skip a feature's shortcut while the feature is off
+        if !settings::is_binding_enabled(id, &current_settings) {
             continue;
         }
 
@@ -1104,6 +1105,43 @@ pub fn change_post_process_enabled_setting(app: AppHandle, enabled: bool) -> Res
     }
 
     crate::secure_input::reconcile_fallback(&app);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_continuous_dictation_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.continuous_dictation_enabled = enabled;
+    settings::write_settings(&app, settings.clone());
+
+    if let Some(binding) = settings
+        .bindings
+        .get(crate::continuous_dictation::BINDING_ID)
+        .cloned()
+    {
+        if enabled {
+            let _ = register_shortcut(&app, binding);
+        } else {
+            let _ = unregister_shortcut(&app, binding);
+            crate::continuous_dictation::stop(&app);
+        }
+    }
+
+    crate::secure_input::reconcile_fallback(&app);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_continuous_dictation_pause_setting(app: AppHandle, ms: u64) -> Result<(), String> {
+    let (min, max) = settings::CONTINUOUS_DICTATION_PAUSE_MS.into_inner();
+    let mut settings = settings::get_settings(&app);
+    settings.continuous_dictation_pause_ms = ms.clamp(min, max);
+    settings::write_settings(&app, settings);
     Ok(())
 }
 

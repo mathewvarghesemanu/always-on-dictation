@@ -345,6 +345,10 @@
           "transcribe_with_post_process": {
             "name": "Sneltoets voor naverwerking",
             "description": "Optioneel: Een specifieke sneltoets die altijd AI-naverwerking toepast op je transcriptie."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -469,7 +473,8 @@
         "output": "Uitvoer",
         "transcription": "Transcriptie",
         "history": "Geschiedenis",
-        "experimental": "Experimenteel"
+        "experimental": "Experimenteel",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Experimentele functies",
@@ -618,6 +623,15 @@
           "simplified": "Vereenvoudigd",
           "traditionalTw": "Traditioneel (Taiwan)",
           "traditionalHk": "Traditioneel (Hongkong)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },

@@ -176,3 +176,82 @@ fn finish_returns_the_detector_for_the_next_recording() {
     assert_eq!(captured.vad.frame_samples(), FRAME);
     assert_eq!(captured.vad.hangover_for(VadPolicy::Streaming), 20);
 }
+
+/// A sink cutting at pauses of `pause_ms`, and the segments it hands off. The
+/// harness frames are 4 samples, which round up to 1 ms, and the offline
+/// hangover is 10 frames, so `pause_ms` of 13 waits for 3 noise frames.
+fn segmenting(pause_ms: u64) -> (CaptureSink, Arc<Mutex<Vec<Vec<f32>>>>) {
+    let segments = Arc::new(Mutex::new(Vec::new()));
+    let sink = harness(VadPolicy::Offline)
+        .sink
+        .with_pause_segments(pause_ms, {
+            let segments = Arc::clone(&segments);
+            Arc::new(move |segment| segments.lock().unwrap().push(segment))
+        });
+    (sink, segments)
+}
+
+fn speech(sink: &mut CaptureSink, value: f32) {
+    sink.process_chunk(chunk(&[value; FRAME], FRAME));
+}
+
+fn noise(sink: &mut CaptureSink, frames: usize) {
+    for _ in 0..frames {
+        sink.process_chunk(chunk(&[0.0; FRAME], FRAME));
+    }
+}
+
+#[test]
+fn a_pause_after_speech_hands_off_a_segment_and_keeps_recording() {
+    let (mut sink, segments) = segmenting(13);
+    speech(&mut sink, 1.0);
+    noise(&mut sink, 2);
+    assert!(
+        segments.lock().unwrap().is_empty(),
+        "the pause is too short"
+    );
+
+    noise(&mut sink, 1);
+    assert_eq!(*segments.lock().unwrap(), vec![vec![1.0; FRAME]]);
+
+    speech(&mut sink, 2.0);
+    noise(&mut sink, 3);
+    speech(&mut sink, 3.0);
+    assert_eq!(
+        *segments.lock().unwrap(),
+        vec![vec![1.0; FRAME], vec![2.0; FRAME]]
+    );
+    // Speech after the last pause stays in the recording for its stop.
+    assert_eq!(sink.finish().samples, vec![3.0; FRAME]);
+}
+
+#[test]
+fn speech_inside_the_pause_window_restarts_the_count() {
+    let (mut sink, segments) = segmenting(13);
+    speech(&mut sink, 1.0);
+    noise(&mut sink, 2);
+    speech(&mut sink, 2.0);
+    noise(&mut sink, 2);
+    assert!(segments.lock().unwrap().is_empty());
+
+    noise(&mut sink, 1);
+    let mut expected = vec![1.0; FRAME];
+    expected.extend([2.0; FRAME]);
+    assert_eq!(*segments.lock().unwrap(), vec![expected]);
+}
+
+#[test]
+fn silence_without_speech_never_hands_off_a_segment() {
+    let (mut sink, segments) = segmenting(13);
+    noise(&mut sink, 50);
+    assert!(segments.lock().unwrap().is_empty());
+}
+
+#[test]
+fn a_pause_shorter_than_the_hangover_still_waits_one_frame() {
+    let (mut sink, segments) = segmenting(0);
+    speech(&mut sink, 1.0);
+    assert!(segments.lock().unwrap().is_empty());
+    noise(&mut sink, 1);
+    assert_eq!(segments.lock().unwrap().len(), 1);
+}

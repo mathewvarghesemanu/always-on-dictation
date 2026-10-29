@@ -345,6 +345,10 @@
           "transcribe_with_post_process": {
             "name": "Nachbearbeitungs-Tastenkürzel",
             "description": "Optional: Ein dediziertes Tastenkürzel, das immer die KI-Nachbearbeitung auf deine Transkription anwendet."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -469,7 +473,8 @@
         "output": "Ausgabe",
         "transcription": "Transkription",
         "history": "Verlauf",
-        "experimental": "Experimentell"
+        "experimental": "Experimentell",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Experimentelle Funktionen",
@@ -618,6 +623,15 @@
           "simplified": "Vereinfacht",
           "traditionalTw": "Traditionell (Taiwan)",
           "traditionalHk": "Traditionell (Hongkong)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },

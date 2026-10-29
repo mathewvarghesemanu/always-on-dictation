@@ -248,6 +248,22 @@ async changePostProcessEnabledSetting(enabled: boolean) : Promise<Result<null, s
     else return { status: "error", error: e  as any };
 }
 },
+async changeContinuousDictationEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_continuous_dictation_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeContinuousDictationPauseSetting(ms: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_continuous_dictation_pause_setting", { ms }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeExperimentalEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_experimental_enabled_setting", { enabled }) };
@@ -1117,7 +1133,17 @@ chinese_script?: ChineseScript; transcribe_accelerator?: TranscribeAcceleratorSe
  * `device_id` when available (or its name for backends such as Metal),
  * never from the process-local device registry index.
  */
-transcribe_gpu_device?: string | null; extra_recording_buffer_ms?: number; vad_enabled?: boolean; 
+transcribe_gpu_device?: string | null; extra_recording_buffer_ms?: number; 
+/**
+ * Always-on dictation: its shortcut keeps the microphone open and types
+ * each stretch of speech once a pause ends it, until pressed again.
+ */
+continuous_dictation_enabled?: boolean; 
+/**
+ * How long a pause ends a stretch of always-on dictation. Read through
+ * [`AppSettings::continuous_dictation_pause_ms`], which clamps it.
+ */
+continuous_dictation_pause_ms?: number; vad_enabled?: boolean; 
 /**
  * Experimental detector implementation. Silero remains the stable default.
  */

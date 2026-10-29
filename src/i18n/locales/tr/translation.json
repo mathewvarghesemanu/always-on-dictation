@@ -345,6 +345,10 @@
           "transcribe_with_post_process": {
             "name": "Son İşlem Kısayolu",
             "description": "İsteğe bağlı: Transkripsiyonunuza her zaman yapay zekâ ile son işlem uygulayan özel bir kısayol tuşu."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -469,7 +473,8 @@
         "output": "Çıktı",
         "transcription": "Transkripsiyon",
         "history": "Geçmiş",
-        "experimental": "Deneysel"
+        "experimental": "Deneysel",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Deneysel Özellikler",
@@ -618,6 +623,15 @@
           "simplified": "Basitleştirilmiş",
           "traditionalTw": "Geleneksel (Tayvan)",
           "traditionalHk": "Geleneksel (Hong Kong)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },

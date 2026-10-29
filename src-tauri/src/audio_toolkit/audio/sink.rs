@@ -66,6 +66,17 @@ pub type LevelCallback = Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>;
 /// Receives each 16 kHz mono frame that passes the recording's VAD policy, in
 /// order. Used to feed live streaming transcription as audio arrives.
 pub type AudioFrameCallback = Arc<dyn Fn(&[f32]) + Send + Sync + 'static>;
+/// Receives each segment an always-on dictation session cuts at a pause.
+pub type SegmentCallback = Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>;
+
+/// Cuts a recording at pauses for always-on dictation: once speech has been
+/// kept and `pause_frames` frames of noise follow it, the speech so far is
+/// handed off and the recording carries on into a fresh segment.
+struct PauseSegmenter {
+    pause_frames: usize,
+    silent_frames: usize,
+    on_segment: SegmentCallback,
+}
 
 /// What a finished recording hands back.
 pub struct CapturedAudio {
@@ -92,6 +103,7 @@ pub struct CaptureSink {
     ready: Option<mpsc::Sender<()>>,
     samples: Vec<f32>,
     heard_sound: bool,
+    segmenter: Option<PauseSegmenter>,
 }
 
 /// Spectrum window at 16 kHz: 32 ms, near the overlay's ~30 Hz refresh.
@@ -128,7 +140,29 @@ impl CaptureSink {
             ready: Some(ready),
             samples: Vec::new(),
             heard_sound: false,
+            segmenter: None,
         }
+    }
+
+    /// Hands the speech so far to `on_segment` whenever a pause of at least
+    /// `pause_ms` follows it, while the recording keeps going. Pauses are
+    /// found by VAD, so with the policy `Disabled` nothing is ever cut.
+    pub fn with_pause_segments(mut self, pause_ms: u64, on_segment: SegmentCallback) -> Self {
+        let frame_ms =
+            (self.vad.frame_samples() as u64 * 1000 / constants::WHISPER_SAMPLE_RATE as u64).max(1);
+        // VAD keeps reporting speech through its hangover tail after the
+        // voice stops, so that tail already counts toward the pause.
+        let hangover_ms = self.vad.hangover_for(self.policy) as u64 * frame_ms;
+        let pause_frames = pause_ms
+            .saturating_sub(hangover_ms)
+            .div_ceil(frame_ms)
+            .max(1);
+        self.segmenter = Some(PauseSegmenter {
+            pause_frames: pause_frames as usize,
+            silent_frames: 0,
+            on_segment,
+        });
+        self
     }
 
     /// The detector, from a sink that never recorded (its start failed).
@@ -197,8 +231,25 @@ impl Sink for CaptureSink {
             .push_frame(chunk.samples)
             .unwrap_or(VadFrame::Speech(chunk.samples))
         {
-            VadFrame::Speech(frame) => Self::emit(&mut self.samples, &self.on_audio, frame),
-            VadFrame::Noise => {}
+            VadFrame::Speech(frame) => {
+                Self::emit(&mut self.samples, &self.on_audio, frame);
+                if let Some(segmenter) = &mut self.segmenter {
+                    segmenter.silent_frames = 0;
+                }
+            }
+            VadFrame::Noise => {
+                // Only a pause after kept speech ends a segment; silence
+                // before anyone speaks just waits.
+                if let Some(segmenter) = &mut self.segmenter {
+                    if !self.samples.is_empty() {
+                        segmenter.silent_frames += 1;
+                        if segmenter.silent_frames >= segmenter.pause_frames {
+                            segmenter.silent_frames = 0;
+                            (segmenter.on_segment)(std::mem::take(&mut self.samples));
+                        }
+                    }
+                }
+            }
         }
     }
 }

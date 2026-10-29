@@ -345,6 +345,10 @@
           "transcribe_with_post_process": {
             "name": "مفتاح المعالجة اللاحقة",
             "description": "اختياري: مفتاح اختصار مخصص يطبق دائماً المعالجة اللاحقة بالذكاء الاصطناعي على التفريغ الصوتي."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -469,7 +473,8 @@
         "output": "الإخراج",
         "transcription": "التفريغ الصوتي",
         "history": "السجل",
-        "experimental": "تجريبي"
+        "experimental": "تجريبي",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "الميزات التجريبية",
@@ -618,6 +623,15 @@
           "simplified": "مبسطة",
           "traditionalTw": "تقليدية (تايوان)",
           "traditionalHk": "تقليدية (هونغ كونغ)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },

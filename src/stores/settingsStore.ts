@@ -204,6 +204,10 @@ const settingUpdaters: {
     commands.changeTranscribeGpuDevice(value as string | null),
   extra_recording_buffer_ms: (value) =>
     commands.changeExtraRecordingBufferSetting(value as number),
+  continuous_dictation_enabled: (value) =>
+    commands.changeContinuousDictationEnabledSetting(value as boolean),
+  continuous_dictation_pause_ms: (value) =>
+    commands.changeContinuousDictationPauseSetting(value as number),
   language_detection: (value) =>
     commands.changeLanguageDetectionSetting(value as LanguageDetectionMode),
   language_detection_window_secs: (value) =>

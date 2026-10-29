@@ -345,6 +345,10 @@
           "transcribe_with_post_process": {
             "name": "Tecla de Pós-Processamento",
             "description": "Opcional: Uma tecla de atalho dedicada que sempre aplica pós-processamento com IA à sua transcrição."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -469,7 +473,8 @@
         "output": "Saída",
         "transcription": "Transcrição",
         "history": "Histórico",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Recursos Experimentais",
@@ -618,6 +623,15 @@
           "simplified": "Simplificado",
           "traditionalTw": "Tradicional (Taiwan)",
           "traditionalHk": "Tradicional (Hong Kong)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },

@@ -3,11 +3,12 @@
 //! This module contains the common logic for handling shortcut events,
 //! used by both the Tauri and handy-keys implementations.
 
-use log::warn;
+use log::{debug, warn};
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
 use crate::actions::ACTION_MAP;
+use crate::continuous_dictation;
 use crate::managers::audio::AudioRecordingManager;
 use crate::settings::get_settings;
 use crate::transcription_coordinator::is_transcribe_binding;
@@ -17,6 +18,7 @@ use crate::TranscriptionCoordinator;
 ///
 /// This function contains the shared logic for:
 /// - Looking up the action in ACTION_MAP
+/// - Toggling always-on dictation, which keeps other dictation out meanwhile
 /// - Handling the cancel binding (only fires when recording)
 /// - Routing transcribe bindings to the coordinator, which applies the
 ///   configured activation mode (toggle / push-to-talk / hold-or-toggle)
@@ -33,6 +35,20 @@ pub fn handle_shortcut_event(
     is_pressed: bool,
 ) {
     let settings = get_settings(app);
+
+    // Always-on dictation toggles on each press; releases do nothing.
+    if binding_id == continuous_dictation::BINDING_ID {
+        if is_pressed {
+            continuous_dictation::toggle(app);
+        }
+        return;
+    }
+
+    // Always-on dictation owns the microphone until it finishes typing.
+    if is_transcribe_binding(binding_id) && continuous_dictation::is_active() {
+        debug!("Ignoring '{binding_id}' while always-on dictation is active");
+        return;
+    }
 
     // Transcribe bindings are handled by the coordinator.
     if is_transcribe_binding(binding_id) {

@@ -4,7 +4,8 @@ use crate::audio_toolkit::{
         frames_for_duration_ms, EarshotVad, SmoothedVad, VAD_OFFLINE_HANGOVER_MS, VAD_ONSET_MS,
         VAD_PREFILL_MS, VAD_STREAMING_HANGOVER_MS,
     },
-    CaptureSink, CaptureVad, SileroVad, SpeechScorer, VadPolicy, VoiceActivityDetector,
+    CaptureSink, CaptureVad, SegmentCallback, SileroVad, SpeechScorer, VadPolicy,
+    VoiceActivityDetector,
 };
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
@@ -1015,6 +1016,28 @@ impl AudioRecordingManager {
         binding_id: &str,
         vad_policy: VadPolicy,
     ) -> Result<RecordingReadiness, anyhow::Error> {
+        self.start_recording(binding_id, vad_policy, None)
+    }
+
+    /// Starts a recording that hands each stretch of speech to `on_segment`
+    /// once a pause of `pause_ms` follows it, without stopping. Stopping it
+    /// returns only the speech since the last pause.
+    pub fn try_start_segmented_recording(
+        &self,
+        binding_id: &str,
+        vad_policy: VadPolicy,
+        pause_ms: u64,
+        on_segment: SegmentCallback,
+    ) -> Result<RecordingReadiness, anyhow::Error> {
+        self.start_recording(binding_id, vad_policy, Some((pause_ms, on_segment)))
+    }
+
+    fn start_recording(
+        &self,
+        binding_id: &str,
+        vad_policy: VadPolicy,
+        segments: Option<(u64, SegmentCallback)>,
+    ) -> Result<RecordingReadiness, anyhow::Error> {
         let mut state = self.state.lock().unwrap();
         if !matches!(*state, RecordingState::Idle) {
             return Err(anyhow::anyhow!("Already recording"));
@@ -1045,6 +1068,12 @@ impl AudioRecordingManager {
                 Arc::clone(&self.on_audio),
                 ready_tx,
             );
+            let sink = match &segments {
+                Some((pause_ms, on_segment)) => {
+                    sink.with_pause_segments(*pause_ms, Arc::clone(on_segment))
+                }
+                None => sink,
+            };
 
             let recorder = self.recorder.lock().unwrap();
             let Some(microphone) = recorder.as_ref() else {
