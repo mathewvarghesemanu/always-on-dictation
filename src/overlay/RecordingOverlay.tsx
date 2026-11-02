@@ -31,6 +31,10 @@ const isNoticeState = (state: OverlayState) =>
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 9;
 
+// Visual-only gain on mic levels so ordinary speaking volume fills the bars.
+// Only the drawing is boosted; the audio sent to the model is untouched.
+const WAVE_BOOST = 2.2;
+
 // Only call out a model load in the Live preview once it has run this long.
 // Warm loads finish in well under this (~0.2s on Apple Silicon, ~1.5s on a
 // Windows CPU backend), so the common case never flashes a loading notice while
@@ -51,6 +55,9 @@ const RecordingOverlay: React.FC = () => {
   // Stay visually in an arming state until the backend processes the first
   // actual microphone sample chunk.
   const [captureReady, setCaptureReady] = useState(false);
+  // Always-on dictation keeps listening while it types a stretch of speech;
+  // a spinner replaces the recording dot until that stretch is done.
+  const [segmentBusy, setSegmentBusy] = useState(false);
   // Recording starts while the model loads in the background. Say so, otherwise
   // a cold start looks like an empty Live preview that ignores speech, then a
   // hung "Transcribing..." spinner. Once recording stops, any in-flight load is
@@ -108,6 +115,7 @@ const RecordingOverlay: React.FC = () => {
         // them would overwrite that event and leave the overlay stuck arming.
         if (overlayState === "recording" || overlayState === "streaming") {
           setCaptureReady(false);
+          setSegmentBusy(false);
           smoothedLevelsRef.current = Array(16).fill(0);
           setLevels(Array(WAVE_BARS).fill(0));
           setStreamText({ committed: "", tentative: "" });
@@ -140,6 +148,7 @@ const RecordingOverlay: React.FC = () => {
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
         setCaptureReady(false);
+        setSegmentBusy(false);
         // A notice keeps rendering while it fades. Dropping the transcript here
         // stops a later notice from showing an old session's text.
         clearTimeout(fadeTimerRef.current);
@@ -153,6 +162,11 @@ const RecordingOverlay: React.FC = () => {
         setElapsed(0);
         setCaptureReady(true);
       });
+
+      const unlistenBusy = await listen<boolean>(
+        "continuous-dictation-busy",
+        (event) => setSegmentBusy(event.payload),
+      );
 
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
@@ -208,6 +222,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenShow();
         unlistenHide();
         unlistenReady();
+        unlistenBusy();
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
@@ -286,7 +301,7 @@ const RecordingOverlay: React.FC = () => {
         <i
           key={i}
           style={{
-            height: `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`,
+            height: `${Math.max(3, Math.min(18, 3 + Math.pow(Math.min(1, v * WAVE_BOOST), 0.7) * 15))}px`,
           }}
         />
       ))}
@@ -315,7 +330,11 @@ const RecordingOverlay: React.FC = () => {
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
-        <span className={`sdot ${captureReady ? "ready" : "arming"}`} />
+        {segmentBusy ? (
+          <span className="sspinner small" />
+        ) : (
+          <span className={`sdot ${captureReady ? "ready" : "arming"}`} />
+        )}
       </div>
       {waveform}
       <div className="sbase-r">

@@ -442,6 +442,12 @@
   animation: sspin 0.7s linear infinite;
   flex: none;
 }
+/* Sits in the recording dot's slot, so it stays close to the dot's size. */
+.sspinner.small {
+  width: 9px;
+  height: 9px;
+  border-width: 1.5px;
+}
 @keyframes sspin {
   to {
     transform: rotate(1turn);

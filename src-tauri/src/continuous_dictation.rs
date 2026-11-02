@@ -28,6 +28,10 @@ use tauri::{AppHandle, Emitter, Manager};
 
 pub const BINDING_ID: &str = "continuous_dictation";
 
+/// Overlay event: `true` while a stretch is transcribed, post-processed and
+/// typed, `false` once it is done.
+const BUSY_EVENT: &str = "continuous-dictation-busy";
+
 /// How often the worker checks for a cancel while waiting for speech.
 const CANCEL_POLL_INTERVAL: Duration = Duration::from_millis(100);
 
@@ -181,7 +185,11 @@ fn run_worker(
         }
         match received.recv_timeout(CANCEL_POLL_INTERVAL) {
             Ok(samples) => {
-                type_segment(&app, samples, || rm.was_cancelled_since(cancel_generation))
+                // Lets the overlay show that a stretch is being worked on
+                // while the microphone keeps listening.
+                let _ = app.emit_to("recording_overlay", BUSY_EVENT, true);
+                type_segment(&app, samples, || rm.was_cancelled_since(cancel_generation));
+                let _ = app.emit_to("recording_overlay", BUSY_EVENT, false);
             }
             Err(RecvTimeoutError::Timeout) => {}
             Err(RecvTimeoutError::Disconnected) => break,
