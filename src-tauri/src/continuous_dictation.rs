@@ -11,10 +11,11 @@ use crate::actions::process_transcription_output;
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE;
 use crate::audio_toolkit::{SegmentCallback, VadPolicy};
-use crate::managers::audio::{recording_error_type, AudioRecordingManager};
+use crate::managers::audio::{recording_notice_code, AudioRecordingManager};
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::TranscriptionManager;
+use crate::notices::{self, Notice, NoticeSource};
 use crate::settings::get_settings;
 use crate::tray::{set_tray_state, TrayIconState};
 use crate::utils;
@@ -91,7 +92,7 @@ fn start(app: &AppHandle) {
         return;
     }
 
-    tm.initiate_model_load();
+    tm.initiate_model_load(true);
     if !tm.is_model_loaded() {
         let selected_model = get_settings(app).selected_model;
         if let Err(e) = app
@@ -122,12 +123,10 @@ fn start(app: &AppHandle) {
         Ok(readiness) => readiness,
         Err(e) => {
             error!("Failed to start always-on dictation: {e:#}");
-            let _ = app.emit(
-                "recording-error",
-                serde_json::json!({
-                    "error_type": recording_error_type(&e),
-                    "detail": format!("{e:#}"),
-                }),
+            notices::raise(
+                app,
+                Notice::new(recording_notice_code(&e), NoticeSource::Dictation)
+                    .with_detail(format!("{e:#}")),
             );
             return;
         }
@@ -224,7 +223,7 @@ fn type_segment(app: &AppHandle, mut samples: Vec<f32>, is_cancelled: impl Fn() 
     let hm = app.state::<Arc<HistoryManager>>();
 
     // Reloads the model if an immediate unload dropped it after the last one.
-    tm.initiate_model_load();
+    tm.initiate_model_load(false);
 
     let file_name = format!("handy-{}.wav", chrono::Utc::now().timestamp_millis());
     let wav_path = hm.recordings_dir().join(&file_name);
