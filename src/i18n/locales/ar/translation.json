@@ -595,6 +595,18 @@
         "remove": "إزالة {{word}}",
         "duplicate": "\"{{word}}\" موجود بالفعل"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "كشف النشاط الصوتي",
         "description": "تصفية الصمت من التسجيلات. النماذج التي تدعم البث تستخدم فترة VAD أطول؛ وتعطيل VAD يسجّل الصوت الخام."

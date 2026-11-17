@@ -595,6 +595,18 @@
         "remove": "Премахване на {{word}}",
         "duplicate": "„{{word}}“ вече съществува"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Откриване на гласова активност",
         "description": "Филтрира тишината от записите. Моделите с поддръжка на стрийминг използват по-дълга опашка на VAD; изключването на VAD записва необработен звук."

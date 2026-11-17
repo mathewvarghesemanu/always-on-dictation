@@ -32,6 +32,7 @@ mod transcription_hook;
 mod tray;
 mod tray_i18n;
 mod utils;
+mod voice_commands;
 pub mod webkit_renderer;
 
 pub use cli::CliArgs;
@@ -728,6 +729,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::delete_post_process_prompt,
             shortcut::set_post_process_selected_prompt,
             shortcut::update_custom_words,
+            shortcut::update_voice_commands,
             shortcut::suspend_all_bindings,
             shortcut::resume_all_bindings,
             shortcut::change_mute_while_recording_setting,

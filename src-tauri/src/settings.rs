@@ -87,6 +87,24 @@ pub struct ShortcutBinding {
     pub current_binding: String,
 }
 
+/// A spoken phrase that presses keys instead of being typed.
+#[derive(Serialize, Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+pub struct VoiceCommand {
+    pub id: String,
+    /// What the user says, e.g. "press enter". Matched case-insensitively.
+    pub phrase: String,
+    /// Keys to press, as the key recorder writes them, e.g. "ctrl+enter".
+    pub keys: String,
+    /// Only when the phrase ends the dictation (or is all of it); otherwise
+    /// wherever it's said.
+    #[serde(default = "default_true")]
+    pub end_only: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct LLMPrompt {
     pub id: String,
@@ -464,6 +482,9 @@ pub struct AppSettings {
     pub log_level: LogLevel,
     #[serde(default)]
     pub custom_words: Vec<String>,
+    /// Spoken phrases that press keys, applied to the final (post-processed) text.
+    #[serde(default)]
+    pub voice_commands: Vec<VoiceCommand>,
     #[serde(default)]
     pub model_unload_timeout: ModelUnloadTimeout,
     #[serde(default = "default_word_correction_threshold")]
@@ -1053,6 +1074,7 @@ pub fn get_default_settings() -> AppSettings {
         debug_mode: false,
         log_level: default_log_level(),
         custom_words: Vec::new(),
+        voice_commands: Vec::new(),
         model_unload_timeout: ModelUnloadTimeout::default(),
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),

@@ -595,6 +595,18 @@
         "remove": "{{word}} Kaldır",
         "duplicate": "\"{{word}}\" zaten mevcut"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Ses Etkinliği Algılama",
         "description": "Kayıtlardaki sessizliği filtreler. Akış destekli modeller daha uzun bir VAD kuyruğu kullanır; VAD devre dışı bırakıldığında ham ses kaydedilir."

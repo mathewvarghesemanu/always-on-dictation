@@ -595,6 +595,18 @@
         "remove": "刪除 {{word}}",
         "duplicate": "「{{word}}」已存在"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "語音活動偵測",
         "description": "過濾錄音中的靜音。支援串流的模型會使用較長的 VAD 尾段；停用 VAD 則會錄製原始音訊"

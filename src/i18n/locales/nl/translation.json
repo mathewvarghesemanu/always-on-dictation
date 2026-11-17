@@ -595,6 +595,18 @@
         "remove": "{{word}} verwijderen",
         "duplicate": "\"{{word}}\" bestaat al"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
         "description": "Filter stilte uit opnames. Streaming-modellen gebruiken een langere VAD-uitloop; het uitschakelen van VAD neemt de ruwe audio op."

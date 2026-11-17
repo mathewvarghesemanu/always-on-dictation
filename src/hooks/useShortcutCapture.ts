@@ -30,9 +30,16 @@ export const useShortcutCapture = (
   osType: OSType,
   {
     onDone,
+    onCapture,
     inert = false,
     escapeCancels = false,
-  }: { onDone?: () => void; inert?: boolean; escapeCancels?: boolean } = {},
+  }: {
+    onDone?: () => void;
+    /** Receives the recorded combo; with `inert`, the only place it goes. */
+    onCapture?: (binding: string) => void;
+    inert?: boolean;
+    escapeCancels?: boolean;
+  } = {},
 ) => {
   const { t } = useTranslation();
   const { getSetting, updateBinding } = useSettings();
@@ -42,6 +49,8 @@ export const useShortcutCapture = (
   const [partial, setPartial] = useState("");
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+  const onCaptureRef = useRef(onCapture);
+  onCaptureRef.current = onCapture;
 
   // What the capture holds in the backend, released on end or unmount.
   const held = useRef<"handyKeys" | "bindings" | null>(null);
@@ -71,6 +80,7 @@ export const useShortcutCapture = (
     async (binding: string) => {
       try {
         if (!inert) await updateBinding(bindingId, binding);
+        onCaptureRef.current?.(binding);
       } catch (error) {
         console.error("Failed to change binding:", error);
         notify({

@@ -819,12 +819,12 @@ fn should_send_auto_submit(auto_submit: bool, paste_method: PasteMethod) -> bool
 
 /// Pastes `text` into the focused app. Call from a worker thread, never the main
 /// thread: it sleeps between steps (input injection hops via `with_enigo`).
+///
+/// Spoken voice commands in `text` ("press enter") become key presses. This is
+/// the last step before output, so it sees post-processed text.
 pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     let _paste = PASTE_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
     let settings = get_settings(&app_handle);
-    let paste_method = settings.paste_method;
-    let paste_delay_ms = settings.paste_delay_ms;
-    let paste_delay_after_ms = settings.paste_delay_after_ms;
 
     // Append trailing space if setting is enabled
     let text = if settings.append_trailing_space {
@@ -835,8 +835,68 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
 
     info!(
         "Using paste method: {:?}, delay before: {}ms, delay after: {}ms",
-        paste_method, paste_delay_ms, paste_delay_after_ms
+        settings.paste_method, settings.paste_delay_ms, settings.paste_delay_after_ms
     );
+
+    let segments = crate::voice_commands::split(&text, &settings.voice_commands);
+    let has_keys = segments
+        .iter()
+        .any(|s| matches!(s, crate::voice_commands::Segment::Keys(_)));
+    if !has_keys {
+        return paste_text(&text, &app_handle, &settings, true, true);
+    }
+    if settings.paste_method == PasteMethod::None {
+        info!("PasteMethod::None selected - skipping paste and voice commands");
+        return Ok(());
+    }
+
+    info!("Voice commands found; output has {} parts", segments.len());
+    let last = segments.len() - 1;
+    let mut typed = String::new();
+    for (i, segment) in segments.into_iter().enumerate() {
+        match segment {
+            crate::voice_commands::Segment::Text(part) => {
+                // Auto-submit only when the output ends in text: a spoken key
+                // at the end already decides how it's sent.
+                paste_text(&part, &app_handle, &settings, i == last, false)?;
+                typed.push_str(&part);
+            }
+            crate::voice_commands::Segment::Keys(combo) => {
+                std::thread::sleep(Duration::from_millis(50));
+                info!("Pressing voice command keys: {combo}");
+                with_enigo(&app_handle, move |enigo| {
+                    crate::voice_commands::press_combo(enigo, &combo)
+                })?;
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
+    }
+
+    if settings.clipboard_handling == ClipboardHandling::CopyToClipboard && !typed.is_empty() {
+        write_text_to_clipboard(&app_handle, &typed)?;
+    }
+
+    Ok(())
+}
+
+/// Puts `text` into the focused app with the configured method, then
+/// optionally auto-submits and copies it to the clipboard.
+fn paste_text(
+    text: &str,
+    app_handle: &AppHandle,
+    settings: &crate::settings::AppSettings,
+    allow_auto_submit: bool,
+    allow_clipboard_copy: bool,
+) -> Result<(), String> {
+    let paste_method = settings.paste_method;
+    let paste_delay_ms = settings.paste_delay_ms;
+    let paste_delay_after_ms = settings.paste_delay_after_ms;
+    let auto_submit = settings.auto_submit && allow_auto_submit;
+    let clipboard_handling = if allow_clipboard_copy {
+        settings.clipboard_handling
+    } else {
+        ClipboardHandling::DontModify
+    };
 
     // Perform the paste operation
     match paste_method {
@@ -845,8 +905,8 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
         }
         PasteMethod::Direct => {
             paste_direct(
-                &text,
-                &app_handle,
+                text,
+                app_handle,
                 #[cfg(target_os = "linux")]
                 settings.typing_tool,
             )?;
@@ -860,13 +920,9 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             if settings.reliable_paste {
                 // Runs entirely on the main thread, as it requires.
-                let (text, app) = (text.clone(), app_handle.clone());
-                let (auto_submit, auto_submit_key, clipboard_handling) = (
-                    settings.auto_submit,
-                    settings.auto_submit_key,
-                    settings.clipboard_handling,
-                );
-                let reliable_result = with_enigo(&app_handle, move |enigo| {
+                let (text, app) = (text.to_string(), app_handle.clone());
+                let auto_submit_key = settings.auto_submit_key;
+                let reliable_result = with_enigo(app_handle, move |enigo| {
                     crate::paste_tx::try_reliable_paste(
                         &text,
                         &app,
@@ -885,8 +941,8 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
                 }
             }
             paste_via_clipboard(
-                &text,
-                &app_handle,
+                text,
+                app_handle,
                 &paste_method,
                 paste_delay_ms,
                 paste_delay_after_ms,
@@ -898,14 +954,14 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
                 .as_ref()
                 .filter(|p| !p.is_empty())
                 .ok_or("External script path is not configured")?;
-            paste_via_external_script(&text, script_path)?;
+            paste_via_external_script(text, script_path)?;
         }
     }
 
-    if should_send_auto_submit(settings.auto_submit, paste_method) {
+    if should_send_auto_submit(auto_submit, paste_method) {
         std::thread::sleep(Duration::from_millis(50));
         let auto_submit_key = settings.auto_submit_key;
-        if let Err(error) = with_enigo(&app_handle, move |enigo| {
+        if let Err(error) = with_enigo(app_handle, move |enigo| {
             send_return_key(enigo, auto_submit_key)
         }) {
             log::warn!("Paste succeeded, but auto-submit failed: {error}");
@@ -913,8 +969,8 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     }
 
     // After pasting, optionally copy to clipboard based on settings
-    if settings.clipboard_handling == ClipboardHandling::CopyToClipboard {
-        write_text_to_clipboard(&app_handle, &text)?;
+    if clipboard_handling == ClipboardHandling::CopyToClipboard {
+        write_text_to_clipboard(app_handle, text)?;
     }
 
     Ok(())
