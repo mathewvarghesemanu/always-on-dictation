@@ -7,7 +7,10 @@
     "model": "Модел",
     "quit": "Изход",
     "cancel": "Отказ",
-    "secureInputWarning": "⚠ Бързите клавиши са блокирани от Secure Input"
+    "secureInputWarning": "⚠ Бързите клавиши са блокирани от Secure Input",
+    "language": "Език",
+    "autoLanguage": "Автоматично",
+    "otherLanguages": "Други езици"
   },
   "sidebar": {
     "general": "Общи",
@@ -345,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Бърз клавиш за постобработка",
             "description": "По избор: отделна комбинация, която винаги прилага ИИ постобработка върху транскрипцията."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -423,7 +430,6 @@
         "title": "Старите модели вече не работят с Handy",
         "description": "Заемат {{size}} на компютъра ви.",
         "delete": "Изтрий моделите",
-        "deleted": "Старите модели са изтрити",
         "deleteFailed": "Някои стари модели не можаха да бъдат изтрити. Проверете журнала за подробности."
       },
       "rescan": {
@@ -469,7 +475,8 @@
         "output": "Изход",
         "transcription": "Транскрипция",
         "history": "История",
-        "experimental": "Експериментални"
+        "experimental": "Експериментални",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Експериментални функции",
@@ -478,6 +485,10 @@
       "lazyStreamClose": {
         "label": "Държане на микрофона отворен между транскрипции",
         "description": "Държи потокът от микрофона отворен 30 секунди след спиране на записа, което намалява забавянето при поредни транскрипции. Може да влоши качеството на Bluetooth аудио, докато е активно."
+      },
+      "airpodsMode": {
+        "label": "Режим AirPods",
+        "description": "Автоматично превключва AirPods към Mac за транскрибиране, когато iPhone възпроизвежда звук. Без това записите може да останат беззвучни."
       },
       "acceleration": {
         "transcribe": {
@@ -584,6 +595,18 @@
         "remove": "Премахване на {{word}}",
         "duplicate": "„{{word}}“ вече съществува"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Откриване на гласова активност",
         "description": "Филтрира тишината от записите. Моделите с поддръжка на стрийминг използват по-дълга опашка на VAD; изключването на VAD записва необработен звук."
@@ -618,6 +641,15 @@
           "simplified": "Опростени",
           "traditionalTw": "Традиционни (Тайван)",
           "traditionalHk": "Традиционни (Хонконг)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },
@@ -703,10 +735,10 @@
       "transcribeFile": "Транскрибиране на файл",
       "mediaFiles": "Аудио и видео",
       "fileUnsupported": "Не може да се прочете аудио от {{name}}.",
-      "readingFile": "Четене на {{name}}...",
       "transcribeFailed": "Транскрипцията не бе успешна. Моля, опитайте отново.",
       "waiting": "Изчаква транскрибиране",
       "transcribingPercent": "Транскрибиране, {{percent}}%",
+      "readingFile": "Четене на файла...",
       "showMore": "Покажи повече",
       "showLess": "Покажи по-малко",
       "dropTitle": "Пуснете за транскрибиране",
@@ -741,9 +773,7 @@
       "whatsNewPreview": {
         "title": "Преглед на новостите",
         "description": "Отваря последните включени бележки към изданието, без да ги маркира като видени",
-        "button": "Преглед",
-        "noNotes": "Не са намерени включени бележки към изданието",
-        "error": "Неуспешен преглед на бележките към изданието"
+        "button": "Преглед"
       },
       "onboardingPreview": {
         "title": "Преглед на първоначалната настройка",
@@ -767,8 +797,7 @@
       "modelMigration": {
         "title": "Миграция на модели",
         "description": "Отворете наистина екрана за обновяване на модели в стар формат: изтегля заместители, превключва моделите и изтрива старите файлове",
-        "button": "Отвори",
-        "noRetired": "Няма модели в стар формат на диска"
+        "button": "Отвори"
       },
       "soundTheme": {
         "label": "Звукова тема",
@@ -916,6 +945,8 @@
     "title": "Ново в Handy v{{version}}"
   },
   "common": {
+    "playbackPosition": "Позиция на възпроизвеждане",
+    "resetSetting": "Възстановяване на стойността по подразбиране за {{setting}}",
     "loading": "Зареждане...",
     "delete": "Изтриване",
     "close": "Затваряне",
@@ -926,7 +957,7 @@
   },
   "errors": {
     "loadDirectory": "Грешка при зареждане на папката: {{error}}",
-    "micPermissionDeniedTitle": "Достъпът до микрофона е отказан",
+    "micPermissionDeniedTitle": "Няма достъп до микрофона",
     "micPermissionDenied": {
       "generic": "Операционната система отказа достъп до микрофона. Моля, дайте разрешение за микрофон в системните настройки.",
       "windows": "Включете достъп до микрофона в Настройки → Поверителност и сигурност → Микрофон (включително за настолни приложения).",
@@ -935,12 +966,25 @@
     },
     "noInputDeviceTitle": "Не е намерен микрофон",
     "noInputDevice": "Не е открито аудио входно устройство. Свържете микрофон или слушалки и опитайте отново.",
-    "recordingFailed": "Стартирането на записа не бе успешно: {{error}}",
-    "modelLoadFailed": "Зареждането на модела не бе успешно: {{model}}",
-    "modelLoadFailedUnknown": "неизвестен модел",
+    "recordingFailedTitle": "Записът не стартира",
+    "modelLoadFailed": "Handy не можа да зареди този модел. Опитайте отново или изберете друг.",
+    "modelLoadFailedTitle": "Моделът не се зареди",
+    "modelDownloadFailed": "Изтеглянето е неуспешно",
     "pasteFailedTitle": "Неуспешно поставяне на текст",
     "pasteFailed": "Текстът не можа да бъде поставен в активното приложение.",
+    "postProcessFailedTitle": "Поставено без постобработка",
+    "postProcessFailed": "Постобработката не завърши, затова транскрипцията беше поставена без промени.",
+    "filePostProcessFailedTitle": "Транскрибирано без постобработка",
+    "filePostProcessFailed": "Постобработката не завърши, затова транскрипцията беше запазена без промени.",
+    "fileTranscriptionFailedTitle": "Неуспешна транскрипция на файла",
     "transcriptionFailedTitle": "Неуспешна транскрипция"
+  },
+  "notices": {
+    "errorOne": "{{n}} грешка",
+    "errorMany": "{{n}} грешки",
+    "warningOne": "{{n}} предупреждение",
+    "warningMany": "{{n}} предупреждения",
+    "errorsAndWarnings": "{{errors}}, {{warnings}}"
   },
   "appLanguage": {
     "title": "Език на приложението",

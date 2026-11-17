@@ -7,7 +7,10 @@
     "model": "Model",
     "quit": "Quit",
     "cancel": "Cancel",
-    "secureInputWarning": "⚠ Shortcuts blocked by Secure Input"
+    "secureInputWarning": "⚠ Shortcuts blocked by Secure Input",
+    "language": "Language",
+    "autoLanguage": "Auto",
+    "otherLanguages": "Other Languages"
   },
   "sidebar": {
     "general": "General",
@@ -345,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Post-Processing Hotkey",
             "description": "Optional: A dedicated hotkey that always applies AI post-processing to your transcription."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -423,7 +430,6 @@
         "title": "Old models no longer work with Handy",
         "description": "They're taking up {{size}} on your computer.",
         "delete": "Delete models",
-        "deleted": "Deleted old models",
         "deleteFailed": "Some old models couldn't be deleted. Check the log for details."
       },
       "rescan": {
@@ -469,7 +475,8 @@
         "output": "Output",
         "transcription": "Transcription",
         "history": "History",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Experimental Features",
@@ -478,6 +485,10 @@
       "lazyStreamClose": {
         "label": "Keep Mic Open Between Transcriptions",
         "description": "Keeps the microphone stream open for 30 seconds after recording stops, reducing latency for back-to-back transcriptions. May degrade Bluetooth audio quality while active."
+      },
+      "airpodsMode": {
+        "label": "AirPods Mode",
+        "description": "Automatically switches AirPods to the Mac for transcription when an iPhone is playing audio. Without this, recordings can come back silent."
       },
       "acceleration": {
         "transcribe": {
@@ -584,6 +595,18 @@
         "remove": "Remove {{word}}",
         "duplicate": "\"{{word}}\" already exists"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
         "description": "Filter silence from recordings. Streaming-capable models use a longer VAD tail; disabling VAD records raw audio."
@@ -618,6 +641,15 @@
           "simplified": "Simplified",
           "traditionalTw": "Traditional (Taiwan)",
           "traditionalHk": "Traditional (Hong Kong)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },
@@ -719,10 +751,10 @@
       "transcribeFile": "Transcribe File",
       "mediaFiles": "Audio and video",
       "fileUnsupported": "Couldn't read audio from {{name}}.",
-      "readingFile": "Reading {{name}}...",
       "transcribeFailed": "Transcription failed. Please try again.",
       "waiting": "Waiting to transcribe",
       "transcribingPercent": "Transcribing, {{percent}}%",
+      "readingFile": "Reading file...",
       "showMore": "Show more",
       "showLess": "Show less",
       "dropTitle": "Drop to transcribe",
@@ -757,9 +789,7 @@
       "whatsNewPreview": {
         "title": "Preview What's New",
         "description": "Open the latest bundled release note without marking it as seen",
-        "button": "Preview",
-        "noNotes": "No bundled release notes found",
-        "error": "Failed to preview release notes"
+        "button": "Preview"
       },
       "onboardingPreview": {
         "title": "Preview Onboarding",
@@ -783,8 +813,7 @@
       "modelMigration": {
         "title": "Model Migration",
         "description": "Open the old-format model update screen for real: it downloads replacements, switches models and deletes old files",
-        "button": "Open",
-        "noRetired": "No old-format models on disk"
+        "button": "Open"
       },
       "soundTheme": {
         "label": "Sound Theme",
@@ -932,6 +961,8 @@
     "title": "New in Handy v{{version}}"
   },
   "common": {
+    "playbackPosition": "Playback position",
+    "resetSetting": "Reset {{setting}} to default",
     "loading": "Loading...",
     "delete": "Delete",
     "close": "Close",
@@ -951,12 +982,25 @@
     },
     "noInputDeviceTitle": "No Microphone Found",
     "noInputDevice": "No audio input device was detected. Please connect a microphone or headset and try again.",
-    "recordingFailed": "Failed to start recording: {{error}}",
-    "modelLoadFailed": "Failed to load model: {{model}}",
-    "modelLoadFailedUnknown": "unknown model",
+    "recordingFailedTitle": "Failed to Start Recording",
+    "modelLoadFailed": "Handy couldn't load this model. Try again or choose a different one.",
+    "modelLoadFailedTitle": "Failed to Load Model",
+    "modelDownloadFailed": "Download failed",
     "pasteFailedTitle": "Failed to Paste Text",
     "pasteFailed": "Text could not be pasted into the active application.",
+    "postProcessFailedTitle": "Pasted Without Post-Processing",
+    "postProcessFailed": "Post Process didn't finish, so the transcript was pasted as is.",
+    "filePostProcessFailedTitle": "Transcribed Without Post-Processing",
+    "filePostProcessFailed": "Post Process didn't finish, so the transcript was saved as is.",
+    "fileTranscriptionFailedTitle": "File Transcription Failed",
     "transcriptionFailedTitle": "Transcription Failed"
+  },
+  "notices": {
+    "errorOne": "{{n}} error",
+    "errorMany": "{{n}} errors",
+    "warningOne": "{{n}} warning",
+    "warningMany": "{{n}} warnings",
+    "errorsAndWarnings": "{{errors}}, {{warnings}}"
   },
   "appLanguage": {
     "title": "Application Language",

@@ -7,7 +7,10 @@
     "model": "Модель",
     "quit": "Вийти",
     "cancel": "Скасувати",
-    "secureInputWarning": "⚠ Комбінації клавіш заблоковано Secure Input"
+    "secureInputWarning": "⚠ Комбінації клавіш заблоковано Secure Input",
+    "language": "Мова",
+    "autoLanguage": "Авто",
+    "otherLanguages": "Інші мови"
   },
   "sidebar": {
     "general": "Загальні",
@@ -345,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Гаряча клавіша постобробки",
             "description": "Необов'язково: Спеціальна гаряча клавіша, яка завжди застосовує AI-постобробку до вашої транскрипції."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -423,7 +430,6 @@
         "title": "Старі моделі більше не працюють з Handy",
         "description": "Вони займають {{size}} на вашому комп'ютері.",
         "delete": "Видалити моделі",
-        "deleted": "Старі моделі видалено",
         "deleteFailed": "Не вдалося видалити деякі старі моделі. Подробиці дивіться в журналі."
       },
       "rescan": {
@@ -469,7 +475,8 @@
         "output": "Вивід",
         "transcription": "Транскрипція",
         "history": "Історія",
-        "experimental": "Експериментальне"
+        "experimental": "Експериментальне",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Експериментальні функції",
@@ -478,6 +485,10 @@
       "lazyStreamClose": {
         "label": "Залишати мікрофон увімкненим між транскрипціями",
         "description": "Залишає потік мікрофона відкритим протягом 30 секунд після зупинки запису, зменшуючи затримку при послідовних транскрипціях. Може погіршити якість звуку Bluetooth."
+      },
+      "airpodsMode": {
+        "label": "Режим AirPods",
+        "description": "Автоматично перемикає AirPods на Mac для транскрибування, коли iPhone відтворює звук. Без цього записи можуть виявитися беззвучними."
       },
       "acceleration": {
         "transcribe": {
@@ -584,6 +595,18 @@
         "remove": "Видалити {{word}}",
         "duplicate": "\"{{word}}\" вже існує"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Виявлення голосової активності",
         "description": "Відфільтровує тишу із записів. Моделі з підтримкою потокової обробки використовують довший «хвіст» VAD; вимкнення VAD записує необроблений звук."
@@ -618,6 +641,15 @@
           "simplified": "Спрощені",
           "traditionalTw": "Традиційні (Тайвань)",
           "traditionalHk": "Традиційні (Гонконг)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },
@@ -703,10 +735,10 @@
       "transcribeFile": "Розшифрувати файл",
       "mediaFiles": "Аудіо та відео",
       "fileUnsupported": "Не вдалося прочитати аудіо з {{name}}.",
-      "readingFile": "Читання {{name}}...",
       "transcribeFailed": "Не вдалося розшифрувати. Спробуйте ще раз.",
       "waiting": "Очікує на розшифрування",
       "transcribingPercent": "Розшифрування, {{percent}}%",
+      "readingFile": "Читання файлу...",
       "showMore": "Показати більше",
       "showLess": "Показати менше",
       "dropTitle": "Відпустіть, щоб розшифрувати",
@@ -741,9 +773,7 @@
       "whatsNewPreview": {
         "title": "Попередній перегляд новин",
         "description": "Відкрити останні вбудовані примітки до випуску, не позначаючи їх як переглянуті",
-        "button": "Перегляд",
-        "noNotes": "Вбудовані примітки до випуску не знайдено",
-        "error": "Не вдалося переглянути примітки до випуску"
+        "button": "Перегляд"
       },
       "onboardingPreview": {
         "title": "Попередній перегляд початкового налаштування",
@@ -767,8 +797,7 @@
       "modelMigration": {
         "title": "Міграція моделей",
         "description": "По-справжньому відкрити екран оновлення моделей старого формату: він завантажує заміни, перемикає моделі й видаляє старі файли",
-        "button": "Відкрити",
-        "noRetired": "На диску немає моделей старого формату"
+        "button": "Відкрити"
       },
       "soundTheme": {
         "label": "Звукова тема",
@@ -916,6 +945,8 @@
     "title": "Нове в Handy v{{version}}"
   },
   "common": {
+    "playbackPosition": "Позиція відтворення",
+    "resetSetting": "Відновити значення за замовчуванням: {{setting}}",
     "loading": "Завантаження...",
     "delete": "Видалити",
     "close": "Закрити",
@@ -935,12 +966,25 @@
     },
     "noInputDeviceTitle": "Мікрофон не знайдено",
     "noInputDevice": "Не виявлено жодного пристрою введення звуку. Підключіть мікрофон або гарнітуру та спробуйте знову.",
-    "recordingFailed": "Не вдалося розпочати запис: {{error}}",
-    "modelLoadFailed": "Не вдалося завантажити модель: {{model}}",
-    "modelLoadFailedUnknown": "невідома модель",
+    "recordingFailedTitle": "Не вдалося розпочати запис",
+    "modelLoadFailed": "Handy не вдалося завантажити цю модель. Спробуйте ще раз або виберіть іншу.",
+    "modelLoadFailedTitle": "Не вдалося завантажити модель",
+    "modelDownloadFailed": "Помилка завантаження",
     "pasteFailedTitle": "Не вдалося вставити текст",
     "pasteFailed": "Не вдалося вставити текст до активної програми.",
+    "postProcessFailedTitle": "Вставлено без постобробки",
+    "postProcessFailed": "Постобробка не завершилася, тому розшифровку вставлено як є.",
+    "filePostProcessFailedTitle": "Розшифровано без постобробки",
+    "filePostProcessFailed": "Постобробка не завершилася, тому розшифровку збережено як є.",
+    "fileTranscriptionFailedTitle": "Помилка транскрипції файлу",
     "transcriptionFailedTitle": "Помилка транскрипції"
+  },
+  "notices": {
+    "errorOne": "{{n}} помилка",
+    "errorMany": "{{n}} помилки",
+    "warningOne": "{{n}} попередження",
+    "warningMany": "{{n}} попередження",
+    "errorsAndWarnings": "{{errors}}, {{warnings}}"
   },
   "appLanguage": {
     "title": "Мова інтерфейсу",

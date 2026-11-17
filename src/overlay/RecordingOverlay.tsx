@@ -4,26 +4,48 @@ import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
 import { commands, events } from "@/bindings";
 import type {
+  Notice,
   StreamPhase,
   StreamPhaseEvent,
   StreamTextEvent,
   StreamWorkKind,
 } from "@/bindings";
+import { NoticeBadgeIcon } from "@/components/icons/NoticeBadgeIcon";
 import i18n, { syncLanguageFromSettings } from "@/i18n";
+import { noticeDisplay } from "@/lib/notices";
 import type { ModelStateEvent } from "@/lib/types/events";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 
-type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
+type OverlayState =
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "notice"
+  | "live_notice";
+
+const isNoticeState = (state: OverlayState) =>
+  state === "notice" || state === "live_notice";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 9;
+
+// Visual-only gain on mic levels so ordinary speaking volume fills the bars.
+// Only the drawing is boosted; the audio sent to the model is untouched.
+const WAVE_BOOST = 2.2;
 
 // Only call out a model load in the Live preview once it has run this long.
 // Warm loads finish in well under this (~0.2s on Apple Silicon, ~1.5s on a
 // Windows CPU backend), so the common case never flashes a loading notice while
 // the user is speaking; cold loads can take 40s+.
 const SLOW_MODEL_LOAD_MS = 2000;
+
+// Matches the delay in `hide_recording_overlay`, so a notice can fade out.
+const OVERLAY_FADE_MS = 300;
+
+// 13px padding on each side, the 16px badge and its 7px gap.
+const NOTICE_PILL_CHROME = 49;
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -33,6 +55,9 @@ const RecordingOverlay: React.FC = () => {
   // Stay visually in an arming state until the backend processes the first
   // actual microphone sample chunk.
   const [captureReady, setCaptureReady] = useState(false);
+  // Always-on dictation keeps listening while it types a stretch of speech;
+  // a spinner replaces the recording dot until that stretch is done.
+  const [segmentBusy, setSegmentBusy] = useState(false);
   // Recording starts while the model loads in the background. Say so, otherwise
   // a cold start looks like an empty Live preview that ignores speech, then a
   // hung "Transcribing..." spinner. Once recording stops, any in-flight load is
@@ -61,6 +86,10 @@ const RecordingOverlay: React.FC = () => {
   // True once live text overflows the cap. A top overlay fades its top edge only
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [noticeWidth, setNoticeWidth] = useState<number>();
+  const noticeProbeRef = useRef<HTMLSpanElement>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
@@ -72,13 +101,21 @@ const RecordingOverlay: React.FC = () => {
 
   useEffect(() => {
     const setupEventListeners = async () => {
+      const unlistenNotice = await listen<Notice>("overlay-notice", (event) => {
+        clearTimeout(fadeTimerRef.current);
+        setNotice(event.payload);
+      });
+
       const unlistenShow = await listen("show-overlay", async (event) => {
         const overlayState = event.payload as OverlayState;
+        clearTimeout(fadeTimerRef.current);
+        if (!isNoticeState(overlayState)) setNotice(null);
         // Reset synchronously before settings I/O. A fast microphone can emit
         // recording-ready while the awaits below are in flight; resetting after
         // them would overwrite that event and leave the overlay stuck arming.
         if (overlayState === "recording" || overlayState === "streaming") {
           setCaptureReady(false);
+          setSegmentBusy(false);
           smoothedLevelsRef.current = Array(16).fill(0);
           setLevels(Array(WAVE_BARS).fill(0));
           setStreamText({ committed: "", tentative: "" });
@@ -111,12 +148,25 @@ const RecordingOverlay: React.FC = () => {
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
         setCaptureReady(false);
+        setSegmentBusy(false);
+        // A notice keeps rendering while it fades. Dropping the transcript here
+        // stops a later notice from showing an old session's text.
+        clearTimeout(fadeTimerRef.current);
+        fadeTimerRef.current = setTimeout(() => {
+          setNotice(null);
+          setStreamText({ committed: "", tentative: "" });
+        }, OVERLAY_FADE_MS);
       });
 
       const unlistenReady = await listen("recording-ready", () => {
         setElapsed(0);
         setCaptureReady(true);
       });
+
+      const unlistenBusy = await listen<boolean>(
+        "continuous-dictation-busy",
+        (event) => setSegmentBusy(event.payload),
+      );
 
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
@@ -168,14 +218,17 @@ const RecordingOverlay: React.FC = () => {
       );
 
       return () => {
+        unlistenNotice();
         unlistenShow();
         unlistenHide();
         unlistenReady();
+        unlistenBusy();
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
         unlistenModel();
         clearTimeout(modelLoadTimerRef.current);
+        clearTimeout(fadeTimerRef.current);
       };
     };
 
@@ -211,7 +264,21 @@ const RecordingOverlay: React.FC = () => {
     setOverflowing(false);
   }, [session]);
 
-  if (!isVisible) return null;
+  const shownNotice = notice && isNoticeState(state) ? notice : null;
+  const noticeTitle = shownNotice
+    ? t(noticeDisplay(shownNotice.code).title)
+    : "";
+
+  // CSS can't animate to an intrinsic width, so a notice pill gets a measured one.
+  useLayoutEffect(() => {
+    const probe = noticeProbeRef.current;
+    if (!probe) return;
+    setNoticeWidth(
+      Math.ceil(probe.getBoundingClientRect().width) + NOTICE_PILL_CHROME,
+    );
+  }, [noticeTitle, isVisible]);
+
+  if (!isVisible && !shownNotice) return null;
 
   // Re-pin when the user is within ~a line of the bottom; unpin otherwise.
   const handleStreamScroll = () => {
@@ -234,7 +301,7 @@ const RecordingOverlay: React.FC = () => {
         <i
           key={i}
           style={{
-            height: `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`,
+            height: `${Math.max(3, Math.min(18, 3 + Math.pow(Math.min(1, v * WAVE_BOOST), 0.7) * 15))}px`,
           }}
         />
       ))}
@@ -263,7 +330,11 @@ const RecordingOverlay: React.FC = () => {
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
-        <span className={`sdot ${captureReady ? "ready" : "arming"}`} />
+        {segmentBusy ? (
+          <span className="sspinner small" />
+        ) : (
+          <span className={`sdot ${captureReady ? "ready" : "arming"}`} />
+        )}
       </div>
       {waveform}
       <div className="sbase-r">
@@ -285,28 +356,55 @@ const RecordingOverlay: React.FC = () => {
     </div>
   );
 
+  const noticeRow = (
+    <div className="sbase snotice">
+      <NoticeBadgeIcon className="nglyph" />
+      <span className="nlabel">{noticeTitle}</span>
+    </div>
+  );
+  const noticeProbe = shownNotice && (
+    <span ref={noticeProbeRef} className="nlabel nprobe" aria-hidden="true">
+      {noticeTitle}
+    </span>
+  );
+  const noticeClass = shownNotice ? `cnotice level-${shownNotice.level}` : "";
+  const dismissNotice = shownNotice
+    ? () => commands.dismissOverlayNotice()
+    : undefined;
+
   // ---- Live overlay: a pill that sculpts open into a panel ----
-  if (state === "streaming") {
+  const liveNotice = state === "live_notice" ? shownNotice : null;
+  if (state === "streaming" || liveNotice) {
     const hasText =
       streamText.committed.length > 0 || streamText.tentative.length > 0;
-    const working = phase === "working";
+    const working = !liveNotice && phase === "working";
+    // A notice keeps the transcript; with none, the panel explains the notice.
+    const noticeText =
+      liveNotice && !hasText
+        ? (noticeDisplay(liveNotice.code).explanation?.(t) ?? liveNotice.detail)
+        : null;
     // While listening, a slow model load opens the panel with a notice where the
     // text would be, so speech that isn't transcribing yet doesn't look ignored.
-    const loadingNotice = modelLoadSlow && !working && !hasText;
+    const loadingNotice = !liveNotice && modelLoadSlow && !working && !hasText;
     // Keep the panel open whenever there's text — even while finalizing — so the
     // transcript stays put under a working spinner instead of collapsing and
     // squishing the text mid-stream. Only fall back to the small working pill
     // when there was no text to preserve.
-    const open = hasText || loadingNotice || (loadNoticeShown && !working);
+    const open = liveNotice
+      ? hasText || !!noticeText
+      : hasText || loadingNotice || (loadNoticeShown && !working);
     const collapsed = working && !hasText;
 
     return (
       <div dir={direction} className={`ov-stage ${position}`}>
+        {noticeProbe}
         <div
           key={session}
           className={`scard ${open ? "open" : ""} ${collapsed ? "working" : ""} ${
             isVisible ? "" : "leaving"
-          }`}
+          } ${noticeClass}`}
+          style={liveNotice && !open ? { width: noticeWidth } : undefined}
+          onClick={dismissNotice}
         >
           <div className="stext">
             <div className="stext-clip">
@@ -321,25 +419,30 @@ const RecordingOverlay: React.FC = () => {
                       {t("overlay.loadingModel")}
                     </span>
                   )}
+                  {noticeText && <span className="ndetail">{noticeText}</span>}
                   <span className="committed">
                     {streamText.committed ? streamText.committed + " " : ""}
                   </span>
                   <span className="tentative">{streamText.tentative}</span>
                   {/* Drop the blinking caret once finalizing — it's no longer
                       capturing, and a static spinner conveys the work. */}
-                  {!working && !loadingNotice && <span className="scaret" />}
+                  {!working && !loadingNotice && !liveNotice && (
+                    <span className="scaret" />
+                  )}
                 </p>
               </div>
             </div>
           </div>
-          {working
-            ? workingRow(
-                workKind === "polishing"
-                  ? t("overlay.processing")
-                  : transcribingLabel,
-                true,
-              )
-            : listeningRow(open, true)}
+          {liveNotice
+            ? noticeRow
+            : working
+              ? workingRow(
+                  workKind === "polishing"
+                    ? t("overlay.processing")
+                    : transcribingLabel,
+                  true,
+                )
+              : listeningRow(open, true)}
         </div>
       </div>
     );
@@ -357,10 +460,17 @@ const RecordingOverlay: React.FC = () => {
       dir={direction}
       className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
     >
+      {noticeProbe}
       <div
-        className={`scard compact ${working && isVisible ? "cworking" : ""}`}
+        className={`scard compact ${working && isVisible ? "cworking" : ""} ${noticeClass}`}
+        style={shownNotice ? { width: noticeWidth } : undefined}
+        onClick={dismissNotice}
       >
-        {working ? workingRow(workLabel, true) : listeningRow(false, true)}
+        {shownNotice
+          ? noticeRow
+          : working
+            ? workingRow(workLabel, true)
+            : listeningRow(false, true)}
       </div>
     </div>
   );

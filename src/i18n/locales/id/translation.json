@@ -7,7 +7,10 @@
     "model": "Model",
     "quit": "Keluar",
     "cancel": "Batal",
-    "secureInputWarning": "⚠ Pintasan diblokir oleh Secure Input"
+    "secureInputWarning": "⚠ Pintasan diblokir oleh Secure Input",
+    "language": "Bahasa",
+    "autoLanguage": "Otomatis",
+    "otherLanguages": "Bahasa Lain"
   },
   "sidebar": {
     "general": "Umum",
@@ -345,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Pintasan Pascaproses",
             "description": "Opsional: pintasan khusus yang selalu menerapkan pascaproses AI pada transkripsi Anda."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -423,7 +430,6 @@
         "title": "Model lama tidak lagi berfungsi dengan Handy",
         "description": "Model tersebut memakan {{size}} di komputer Anda.",
         "delete": "Hapus model",
-        "deleted": "Model lama telah dihapus",
         "deleteFailed": "Beberapa model lama tidak dapat dihapus. Periksa log untuk detailnya."
       },
       "rescan": {
@@ -469,7 +475,8 @@
         "output": "Keluaran",
         "transcription": "Transkripsi",
         "history": "Riwayat",
-        "experimental": "Eksperimental"
+        "experimental": "Eksperimental",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Fitur Eksperimental",
@@ -478,6 +485,10 @@
       "lazyStreamClose": {
         "label": "Biarkan Mikrofon Tetap Aktif di Antara Transkripsi",
         "description": "Membiarkan aliran mikrofon tetap terbuka selama 30 detik setelah perekaman berhenti untuk mengurangi latensi pada transkripsi beruntun. Dapat menurunkan kualitas audio Bluetooth saat aktif."
+      },
+      "airpodsMode": {
+        "label": "Mode AirPods",
+        "description": "Secara otomatis mengalihkan AirPods ke Mac untuk transkripsi saat iPhone sedang memutar audio. Tanpa ini, rekaman bisa jadi senyap."
       },
       "acceleration": {
         "transcribe": {
@@ -584,6 +595,18 @@
         "remove": "Hapus {{word}}",
         "duplicate": "\"{{word}}\" sudah ada"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Deteksi Aktivitas Suara",
         "description": "Saring keheningan dari rekaman. Model yang mendukung streaming menggunakan ekor VAD yang lebih panjang; menonaktifkan VAD akan merekam audio mentah."
@@ -618,6 +641,15 @@
           "simplified": "Sederhana",
           "traditionalTw": "Tradisional (Taiwan)",
           "traditionalHk": "Tradisional (Hong Kong)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },
@@ -703,10 +735,10 @@
       "transcribeFile": "Transkripsikan File",
       "mediaFiles": "Audio dan video",
       "fileUnsupported": "Tidak dapat membaca audio dari {{name}}.",
-      "readingFile": "Membaca {{name}}...",
       "transcribeFailed": "Transkripsi gagal. Silakan coba lagi.",
       "waiting": "Menunggu untuk ditranskripsi",
       "transcribingPercent": "Mentranskripsi, {{percent}}%",
+      "readingFile": "Membaca file...",
       "showMore": "Tampilkan lebih banyak",
       "showLess": "Tampilkan lebih sedikit",
       "dropTitle": "Lepaskan untuk mentranskripsi",
@@ -741,9 +773,7 @@
       "whatsNewPreview": {
         "title": "Pratinjau Yang Baru",
         "description": "Buka catatan rilis terbaru yang disertakan tanpa menandainya sebagai telah dilihat",
-        "button": "Pratinjau",
-        "noNotes": "Tidak ada catatan rilis yang disertakan",
-        "error": "Gagal menampilkan pratinjau catatan rilis"
+        "button": "Pratinjau"
       },
       "onboardingPreview": {
         "title": "Pratinjau Penyiapan Awal",
@@ -767,8 +797,7 @@
       "modelMigration": {
         "title": "Migrasi Model",
         "description": "Buka layar pembaruan model format lama secara sungguhan: mengunduh pengganti, beralih model, dan menghapus file lama",
-        "button": "Buka",
-        "noRetired": "Tidak ada model format lama di disk"
+        "button": "Buka"
       },
       "soundTheme": {
         "label": "Tema Suara",
@@ -916,6 +945,8 @@
     "title": "Baru di Handy v{{version}}"
   },
   "common": {
+    "playbackPosition": "Posisi pemutaran",
+    "resetSetting": "Atur ulang {{setting}} ke nilai bawaan",
     "loading": "Memuat...",
     "delete": "Hapus",
     "close": "Tutup",
@@ -935,12 +966,25 @@
     },
     "noInputDeviceTitle": "Mikrofon Tidak Ditemukan",
     "noInputDevice": "Tidak ada perangkat masukan audio yang terdeteksi. Hubungkan mikrofon atau headset lalu coba lagi.",
-    "recordingFailed": "Gagal memulai perekaman: {{error}}",
-    "modelLoadFailed": "Gagal memuat model: {{model}}",
-    "modelLoadFailedUnknown": "model tidak dikenal",
+    "recordingFailedTitle": "Gagal Memulai Perekaman",
+    "modelLoadFailed": "Handy tidak dapat memuat model ini. Coba lagi atau pilih model lain.",
+    "modelLoadFailedTitle": "Gagal Memuat Model",
+    "modelDownloadFailed": "Unduhan gagal",
     "pasteFailedTitle": "Gagal Menempelkan Teks",
     "pasteFailed": "Teks tidak dapat ditempelkan ke aplikasi aktif.",
+    "postProcessFailedTitle": "Ditempel Tanpa Pascaproses",
+    "postProcessFailed": "Pascaproses tidak selesai, jadi transkrip ditempelkan apa adanya.",
+    "filePostProcessFailedTitle": "Ditranskripsi Tanpa Pascaproses",
+    "filePostProcessFailed": "Pascaproses tidak selesai, jadi transkrip disimpan apa adanya.",
+    "fileTranscriptionFailedTitle": "Transkripsi File Gagal",
     "transcriptionFailedTitle": "Transkripsi Gagal"
+  },
+  "notices": {
+    "errorOne": "{{n}} kesalahan",
+    "errorMany": "{{n}} kesalahan",
+    "warningOne": "{{n}} peringatan",
+    "warningMany": "{{n}} peringatan",
+    "errorsAndWarnings": "{{errors}}, {{warnings}}"
   },
   "appLanguage": {
     "title": "Bahasa Aplikasi",

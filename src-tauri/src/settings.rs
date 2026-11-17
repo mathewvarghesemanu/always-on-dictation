@@ -87,6 +87,24 @@ pub struct ShortcutBinding {
     pub current_binding: String,
 }
 
+/// A spoken phrase that presses keys instead of being typed.
+#[derive(Serialize, Deserialize, Debug, Clone, Type, PartialEq, Eq)]
+pub struct VoiceCommand {
+    pub id: String,
+    /// What the user says, e.g. "press enter". Matched case-insensitively.
+    pub phrase: String,
+    /// Keys to press, as the key recorder writes them, e.g. "ctrl+enter".
+    pub keys: String,
+    /// Only when the phrase ends the dictation (or is all of it); otherwise
+    /// wherever it's said.
+    #[serde(default = "default_true")]
+    pub end_only: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct LLMPrompt {
     pub id: String,
@@ -233,6 +251,9 @@ pub enum RecordingRetentionPeriod {
 pub enum KeyboardImplementation {
     Tauri,
     HandyKeys,
+    /// No built-in global shortcuts; trigger Handy via CLI flags or signals
+    /// (e.g. from a Wayland compositor keybinding).
+    None,
 }
 
 impl Default for KeyboardImplementation {
@@ -461,6 +482,9 @@ pub struct AppSettings {
     pub log_level: LogLevel,
     #[serde(default)]
     pub custom_words: Vec<String>,
+    /// Spoken phrases that press keys, applied to the final (post-processed) text.
+    #[serde(default)]
+    pub voice_commands: Vec<VoiceCommand>,
     #[serde(default)]
     pub model_unload_timeout: ModelUnloadTimeout,
     #[serde(default = "default_word_correction_threshold")]
@@ -514,6 +538,11 @@ pub struct AppSettings {
     pub experimental_enabled: bool,
     #[serde(default)]
     pub lazy_stream_close: bool,
+    /// Experimental, macOS only: move a Bluetooth headset (AirPods) to this
+    /// Mac while recording, so its microphone does not return silence while
+    /// another Apple device is playing through it.
+    #[serde(default)]
+    pub airpods_mode: bool,
     #[serde(default)]
     pub keyboard_implementation: KeyboardImplementation,
     #[serde(default = "default_show_tray_icon")]
@@ -551,6 +580,14 @@ pub struct AppSettings {
     pub transcribe_gpu_device: Option<String>,
     #[serde(default)]
     pub extra_recording_buffer_ms: u64,
+    /// Always-on dictation: its shortcut keeps the microphone open and types
+    /// each stretch of speech once a pause ends it, until pressed again.
+    #[serde(default)]
+    pub continuous_dictation_enabled: bool,
+    /// How long a pause ends a stretch of always-on dictation. Read through
+    /// [`AppSettings::continuous_dictation_pause_ms`], which clamps it.
+    #[serde(default = "default_continuous_dictation_pause_ms")]
+    pub continuous_dictation_pause_ms: u64,
     #[serde(default = "default_vad_enabled")]
     pub vad_enabled: bool,
     /// Experimental detector implementation. Silero remains the stable default.
@@ -590,6 +627,10 @@ fn default_hold_threshold_ms() -> u64 {
 
 fn default_always_on_microphone() -> bool {
     false
+}
+
+fn default_continuous_dictation_pause_ms() -> u64 {
+    2000
 }
 
 fn default_translate_to_english() -> bool {
@@ -956,7 +997,7 @@ pub fn get_default_settings() -> AppSettings {
     #[cfg(target_os = "macos")]
     let default_shortcut = "option+space";
     #[cfg(target_os = "linux")]
-    let default_shortcut = "ctrl+space";
+    let default_shortcut = "ctrl+alt+space";
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     let default_shortcut = "alt+space";
 
@@ -976,7 +1017,7 @@ pub fn get_default_settings() -> AppSettings {
     #[cfg(target_os = "macos")]
     let default_post_process_shortcut = "option+shift+space";
     #[cfg(target_os = "linux")]
-    let default_post_process_shortcut = "ctrl+shift+space";
+    let default_post_process_shortcut = "ctrl+alt+shift+space";
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     let default_post_process_shortcut = "alt+shift+space";
 
@@ -989,6 +1030,21 @@ pub fn get_default_settings() -> AppSettings {
                 .to_string(),
             default_binding: default_post_process_shortcut.to_string(),
             current_binding: default_post_process_shortcut.to_string(),
+        },
+    );
+    #[cfg(target_os = "macos")]
+    let default_continuous_dictation_shortcut = "option+ctrl+space";
+    #[cfg(not(target_os = "macos"))]
+    let default_continuous_dictation_shortcut = "ctrl+alt+space";
+
+    bindings.insert(
+        "continuous_dictation".to_string(),
+        ShortcutBinding {
+            id: "continuous_dictation".to_string(),
+            name: "Always-On Dictation".to_string(),
+            description: "Starts or stops always-on dictation.".to_string(),
+            default_binding: default_continuous_dictation_shortcut.to_string(),
+            current_binding: default_continuous_dictation_shortcut.to_string(),
         },
     );
     bindings.insert(
@@ -1029,6 +1085,7 @@ pub fn get_default_settings() -> AppSettings {
         debug_mode: false,
         log_level: default_log_level(),
         custom_words: Vec::new(),
+        voice_commands: Vec::new(),
         model_unload_timeout: ModelUnloadTimeout::default(),
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
@@ -1052,6 +1109,7 @@ pub fn get_default_settings() -> AppSettings {
         theme: default_theme(),
         experimental_enabled: false,
         lazy_stream_close: false,
+        airpods_mode: false,
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),
         paste_delay_ms: default_paste_delay_ms(),
@@ -1065,6 +1123,8 @@ pub fn get_default_settings() -> AppSettings {
         transcribe_accelerator: TranscribeAcceleratorSetting::default(),
         transcribe_gpu_device: default_transcribe_gpu_device(),
         extra_recording_buffer_ms: 0,
+        continuous_dictation_enabled: false,
+        continuous_dictation_pause_ms: default_continuous_dictation_pause_ms(),
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
         long_form_chunking: default_long_form_chunking(),
@@ -1080,6 +1140,20 @@ impl Default for AppSettings {
     }
 }
 
+/// The always-on dictation pause bounds: shorter cuts sentences apart
+/// mid-thought, longer leaves text waiting too long to be typed.
+pub const CONTINUOUS_DICTATION_PAUSE_MS: std::ops::RangeInclusive<u64> = 500..=10_000;
+
+/// Whether a binding's shortcut should be registered. A feature's dedicated
+/// shortcut exists only while that feature is turned on.
+pub fn is_binding_enabled(id: &str, settings: &AppSettings) -> bool {
+    match id {
+        "transcribe_with_post_process" => settings.post_process_enabled,
+        "continuous_dictation" => settings.continuous_dictation_enabled,
+        _ => true,
+    }
+}
+
 /// The language detector's window bounds: below 2 s it guesses, and it only
 /// scores the first 30 s of what it's given.
 pub const LANGUAGE_DETECTION_WINDOW_SECS: std::ops::RangeInclusive<u32> = 2..=30;
@@ -1089,6 +1163,12 @@ impl AppSettings {
     pub fn language_detection_window_samples(&self) -> usize {
         let (min, max) = LANGUAGE_DETECTION_WINDOW_SECS.into_inner();
         self.language_detection_window_secs.clamp(min, max) as usize * 16_000
+    }
+
+    /// How long a pause ends a stretch of always-on dictation.
+    pub fn continuous_dictation_pause_ms(&self) -> u64 {
+        let (min, max) = CONTINUOUS_DICTATION_PAUSE_MS.into_inner();
+        self.continuous_dictation_pause_ms.clamp(min, max)
     }
 
     pub fn active_post_process_provider(&self) -> Option<&PostProcessProvider> {
@@ -1654,6 +1734,20 @@ mod tests {
         assert_eq!(salvaged.paste_delay_ms, default_paste_delay_ms());
         assert_eq!(salvaged.sound_theme, default_sound_theme());
         assert_eq!(salvaged.custom_words, vec!["handy".to_string()]);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn default_shortcuts_do_not_conflict_with_ibus_input_method_switch() {
+        let defaults = get_default_settings();
+        assert_eq!(
+            defaults.bindings["transcribe"].current_binding,
+            "ctrl+alt+space"
+        );
+        assert_eq!(
+            defaults.bindings["transcribe_with_post_process"].current_binding,
+            "ctrl+alt+shift+space",
+        );
     }
 
     #[test]

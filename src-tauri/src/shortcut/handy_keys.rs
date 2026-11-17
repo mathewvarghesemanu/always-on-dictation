@@ -101,8 +101,13 @@ impl HandyKeysState {
 
         // Start the manager thread
         let app_clone = app.clone();
+        // Create the manager here rather than inside the thread so a startup
+        // failure (e.g. missing Accessibility permission) reaches the caller,
+        // which can then fall back to the Tauri implementation.
+        let manager = HotkeyManager::new_with_blocking()
+            .map_err(|e| format!("Failed to create HotkeyManager: {e}"))?;
         let thread_handle = thread::spawn(move || {
-            Self::manager_thread(cmd_rx, app_clone);
+            Self::manager_thread(cmd_rx, app_clone, manager);
         });
 
         Ok(Self {
@@ -116,24 +121,16 @@ impl HandyKeysState {
     }
 
     /// The main manager thread - owns the HotkeyManager and processes commands
-    fn manager_thread(cmd_rx: Receiver<ManagerCommand>, app: AppHandle) {
+    fn manager_thread(cmd_rx: Receiver<ManagerCommand>, app: AppHandle, manager: HotkeyManager) {
         info!("handy-keys manager thread started");
 
-        // Create the HotkeyManager in this thread.
-        //
         // Held in an Option because the tap it owns can be torn down and
         // rebuilt at runtime (see `SuspendTap`): on macOS this is an active,
         // head-inserted CGEventTap, so while it exists every keystroke and
         // mouse event in the session is routed through this thread. Any call
         // that can stall the WindowServer (the Screen Recording TCC prompt is
         // the known offender) must not run while it is installed.
-        let mut manager = match HotkeyManager::new_with_blocking() {
-            Ok(m) => Some(m),
-            Err(e) => {
-                error!("Failed to create HotkeyManager: {}", e);
-                return;
-            }
-        };
+        let mut manager = Some(manager);
 
         // Registrations parked while the tap is suspended, restored on resume.
         let mut suspended: Vec<(String, String)> = Vec::new();
@@ -543,8 +540,8 @@ pub fn init_shortcuts(app: &AppHandle) -> Result<(), String> {
         if id == "cancel" {
             continue;
         }
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !user_settings.post_process_enabled {
+        // Skip a feature's shortcut while the feature is off
+        if !settings::is_binding_enabled(&id, &user_settings) {
             continue;
         }
 

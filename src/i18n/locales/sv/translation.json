@@ -7,7 +7,10 @@
     "model": "Modell",
     "quit": "Avsluta",
     "cancel": "Avbryt",
-    "secureInputWarning": "⚠ Kortkommandon blockeras av Secure Input"
+    "secureInputWarning": "⚠ Kortkommandon blockeras av Secure Input",
+    "language": "Språk",
+    "autoLanguage": "Automatiskt",
+    "otherLanguages": "Andra språk"
   },
   "sidebar": {
     "general": "Allmänt",
@@ -345,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Snabbkommando för efterbearbetning",
             "description": "Valfritt: En dedikerad snabbknapp som alltid tillämpar AI-efterbearbetning på din transkription."
+          },
+          "continuous_dictation": {
+            "name": "Always-On Dictation Shortcut",
+            "description": "Starts always-on dictation; press again to stop."
           }
         },
         "errors": {
@@ -423,7 +430,6 @@
         "title": "Gamla modeller fungerar inte längre med Handy",
         "description": "De tar upp {{size}} på din dator.",
         "delete": "Ta bort modeller",
-        "deleted": "Gamla modeller borttagna",
         "deleteFailed": "Vissa gamla modeller kunde inte tas bort. Se loggen för mer information."
       },
       "rescan": {
@@ -469,7 +475,8 @@
         "output": "Utmatning",
         "transcription": "Transkription",
         "history": "Historik",
-        "experimental": "Experimentellt"
+        "experimental": "Experimentellt",
+        "continuousDictation": "Always-On Dictation"
       },
       "experimentalToggle": {
         "label": "Experimentella funktioner",
@@ -478,6 +485,10 @@
       "lazyStreamClose": {
         "label": "Håll mikrofonen öppen mellan transkriptioner",
         "description": "Håller mikrofonströmmen öppen i 30 sekunder efter att inspelningen avslutats, vilket minskar latensen för transkriptioner efter varandra. Kan försämra Bluetooth-ljudkvaliteten medan den är aktiv."
+      },
+      "airpodsMode": {
+        "label": "AirPods-läge",
+        "description": "Växlar automatiskt AirPods till Mac:en för transkribering när en iPhone spelar upp ljud. Utan detta kan inspelningar bli helt tysta."
       },
       "acceleration": {
         "transcribe": {
@@ -584,6 +595,18 @@
         "remove": "Ta bort {{word}}",
         "duplicate": "\"{{word}}\" finns redan"
       },
+      "voiceCommands": {
+        "title": "Voice Commands",
+        "description": "Say a phrase to press keys, e.g. \"press enter\" presses Enter. Checked runs it only when the phrase ends what you said; unchecked runs it wherever it's said. Applied after post-processing.",
+        "add": "Add voice command",
+        "phraseLabel": "Phrase to say",
+        "phrasePlaceholder": "press enter",
+        "keysLabel": "Keys to press",
+        "setKeys": "Set keys",
+        "pressKeys": "Press keys...",
+        "endOnly": "At end only",
+        "remove": "Remove \"{{phrase}}\""
+      },
       "voiceActivityDetection": {
         "title": "Röstaktivitetsdetektering",
         "description": "Filtrerar bort tystnad från inspelningar. Modeller med streamingstöd använder en längre VAD-svans; om VAD inaktiveras spelas rått ljud in."
@@ -618,6 +641,15 @@
           "simplified": "Förenklad",
           "traditionalTw": "Traditionell (Taiwan)",
           "traditionalHk": "Traditionell (Hongkong)"
+        }
+      },
+      "continuousDictation": {
+        "title": "Always-On Dictation",
+        "description": "Press the always-on dictation shortcut once to keep the microphone open. Each time you pause, what you said is transcribed and typed while Handy keeps listening. Post-processing applies whenever it is turned on. Press the shortcut again to stop.",
+        "pause": {
+          "title": "Pause Before Typing",
+          "description": "How long you stay silent before what you said is transcribed and typed.",
+          "value": "{{seconds}}s"
         }
       }
     },
@@ -703,10 +735,10 @@
       "transcribeFile": "Transkribera fil",
       "mediaFiles": "Ljud och video",
       "fileUnsupported": "Kunde inte läsa ljud från {{name}}.",
-      "readingFile": "Läser {{name}}...",
       "transcribeFailed": "Transkriberingen misslyckades. Försök igen.",
       "waiting": "Väntar på transkribering",
       "transcribingPercent": "Transkriberar, {{percent}} %",
+      "readingFile": "Läser fil...",
       "showMore": "Visa mer",
       "showLess": "Visa mindre",
       "dropTitle": "Släpp för att transkribera",
@@ -741,9 +773,7 @@
       "whatsNewPreview": {
         "title": "Förhandsvisa nyheter",
         "description": "Öppna den senaste medföljande versionsinformationen utan att markera den som visad",
-        "button": "Förhandsvisa",
-        "noNotes": "Ingen medföljande versionsinformation hittades",
-        "error": "Det gick inte att förhandsvisa versionsinformationen"
+        "button": "Förhandsvisa"
       },
       "onboardingPreview": {
         "title": "Förhandsvisa introduktionen",
@@ -767,8 +797,7 @@
       "modelMigration": {
         "title": "Modellmigrering",
         "description": "Öppna uppdateringsskärmen för modeller i gammalt format på riktigt: den laddar ner ersättare, byter modell och tar bort gamla filer",
-        "button": "Öppna",
-        "noRetired": "Inga modeller i gammalt format på disken"
+        "button": "Öppna"
       },
       "soundTheme": {
         "label": "Ljudtema",
@@ -916,6 +945,8 @@
     "title": "Nytt i Handy v{{version}}"
   },
   "common": {
+    "playbackPosition": "Uppspelningsposition",
+    "resetSetting": "Återställ {{setting}} till standardvärdet",
     "loading": "Laddar...",
     "delete": "Ta bort",
     "close": "Stäng",
@@ -935,12 +966,25 @@
     },
     "noInputDeviceTitle": "Ingen mikrofon hittades",
     "noInputDevice": "Ingen ljudenhet hittades. Anslut en mikrofon eller ett headset och försök igen.",
-    "recordingFailed": "Misslyckades med att starta inspelning: {{error}}",
-    "modelLoadFailed": "Misslyckades med att ladda modell: {{model}}",
-    "modelLoadFailedUnknown": "okänd modell",
+    "recordingFailedTitle": "Inspelningen kunde inte starta",
+    "modelLoadFailed": "Handy kunde inte läsa in den här modellen. Försök igen eller välj en annan.",
+    "modelLoadFailedTitle": "Misslyckades med att ladda modell",
+    "modelDownloadFailed": "Nedladdningen misslyckades",
     "pasteFailedTitle": "Det gick inte att klistra in texten",
     "pasteFailed": "Texten kunde inte klistras in i det aktiva programmet.",
+    "postProcessFailedTitle": "Inklistrat utan efterbearbetning",
+    "postProcessFailed": "Efterbearbetningen slutfördes inte, så transkriptionen klistrades in som den är.",
+    "filePostProcessFailedTitle": "Transkriberat utan efterbearbetning",
+    "filePostProcessFailed": "Efterbearbetningen slutfördes inte, så transkriptionen sparades som den är.",
+    "fileTranscriptionFailedTitle": "Transkriptionen av filen misslyckades",
     "transcriptionFailedTitle": "Transkriptionen misslyckades"
+  },
+  "notices": {
+    "errorOne": "{{n}} fel",
+    "errorMany": "{{n}} fel",
+    "warningOne": "{{n}} varning",
+    "warningMany": "{{n}} varningar",
+    "errorsAndWarnings": "{{errors}}, {{warnings}}"
   },
   "appLanguage": {
     "title": "Applikationsspråk",

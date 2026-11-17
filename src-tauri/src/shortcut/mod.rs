@@ -54,6 +54,9 @@ pub fn init_shortcuts(app: &AppHandle) {
                 tauri_impl::init_shortcuts(app);
             }
         }
+        KeyboardImplementation::None => {
+            info!("Built-in keyboard shortcuts disabled; use CLI flags or signals");
+        }
     }
 }
 
@@ -136,6 +139,7 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
     match settings.keyboard_implementation {
         KeyboardImplementation::Tauri => tauri_impl::register_shortcut(app, binding),
         KeyboardImplementation::HandyKeys => handy_keys::register_shortcut(app, binding),
+        KeyboardImplementation::None => Ok(()),
     }
 }
 
@@ -145,6 +149,7 @@ pub fn unregister_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<
     match settings.keyboard_implementation {
         KeyboardImplementation::Tauri => tauri_impl::unregister_shortcut(app, binding),
         KeyboardImplementation::HandyKeys => handy_keys::unregister_shortcut(app, binding),
+        KeyboardImplementation::None => Ok(()),
     }
 }
 
@@ -337,7 +342,8 @@ pub fn resume_all_shortcuts(app: &AppHandle) {
         if id == "cancel" {
             continue;
         }
-        if id == "transcribe_with_post_process" && !settings.post_process_enabled {
+        // Skip a feature's shortcut while the feature is off
+        if !settings::is_binding_enabled(id, &settings) {
             continue;
         }
         if let Err(e) = register_shortcut(app, binding.clone()) {
@@ -456,6 +462,7 @@ pub fn get_keyboard_implementation(app: AppHandle) -> String {
     match settings.keyboard_implementation {
         KeyboardImplementation::Tauri => "tauri".to_string(),
         KeyboardImplementation::HandyKeys => "handy_keys".to_string(),
+        KeyboardImplementation::None => "none".to_string(),
     }
 }
 
@@ -471,6 +478,7 @@ fn validate_shortcut_for_implementation(
     match implementation {
         KeyboardImplementation::Tauri => tauri_impl::validate_shortcut(raw),
         KeyboardImplementation::HandyKeys => handy_keys::validate_shortcut(raw),
+        KeyboardImplementation::None => Ok(()),
     }
 }
 
@@ -479,6 +487,7 @@ fn parse_keyboard_implementation(s: &str) -> KeyboardImplementation {
     match s {
         "tauri" => KeyboardImplementation::Tauri,
         "handy_keys" => KeyboardImplementation::HandyKeys,
+        "none" => KeyboardImplementation::None,
         other => {
             warn!(
                 "Invalid keyboard implementation '{}', defaulting to tauri",
@@ -502,6 +511,7 @@ fn unregister_all_shortcuts(app: &AppHandle, implementation: KeyboardImplementat
         let result = match implementation {
             KeyboardImplementation::Tauri => tauri_impl::unregister_shortcut(app, binding),
             KeyboardImplementation::HandyKeys => handy_keys::unregister_shortcut(app, binding),
+            KeyboardImplementation::None => Ok(()),
         };
 
         if let Err(e) = result {
@@ -528,8 +538,8 @@ fn register_all_shortcuts_for_implementation(
             continue;
         }
 
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !current_settings.post_process_enabled {
+        // Skip a feature's shortcut while the feature is off
+        if !settings::is_binding_enabled(id, &current_settings) {
             continue;
         }
 
@@ -560,6 +570,7 @@ fn register_all_shortcuts_for_implementation(
         let result = match implementation {
             KeyboardImplementation::Tauri => tauri_impl::register_shortcut(app, binding),
             KeyboardImplementation::HandyKeys => handy_keys::register_shortcut(app, binding),
+            KeyboardImplementation::None => Ok(()),
         };
 
         if let Err(e) = result {
@@ -722,8 +733,18 @@ pub fn change_translate_to_english_setting(app: AppHandle, enabled: bool) -> Res
 #[specta::specta]
 pub fn change_selected_language_setting(app: AppHandle, language: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
-    settings.selected_language = language;
+    settings.selected_language = language.clone();
     settings::write_settings(&app, settings);
+    tray::update_tray_menu(&app);
+
+    // The tray can change it too; keep the settings window in sync.
+    let _ = app.emit(
+        "settings-changed",
+        serde_json::json!({
+            "setting": "selected_language",
+            "value": language
+        }),
+    );
     Ok(())
 }
 
@@ -736,6 +757,7 @@ pub fn change_spoken_languages_setting(
     let mut settings = settings::get_settings(&app);
     settings.spoken_languages = languages;
     settings::write_settings(&app, settings);
+    tray::update_tray_menu(&app);
     Ok(())
 }
 
@@ -932,6 +954,23 @@ pub fn update_custom_words(app: AppHandle, words: Vec<String>) -> Result<(), Str
 
 #[tauri::command]
 #[specta::specta]
+pub fn update_voice_commands(
+    app: AppHandle,
+    commands: Vec<settings::VoiceCommand>,
+) -> Result<(), String> {
+    for command in &commands {
+        if !command.keys.trim().is_empty() {
+            crate::voice_commands::parse_combo(&command.keys)?;
+        }
+    }
+    let mut settings = settings::get_settings(&app);
+    settings.voice_commands = commands;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_word_correction_threshold_setting(
     app: AppHandle,
     threshold: f64,
@@ -951,6 +990,7 @@ pub fn change_language_detection_setting(
     let mut settings = settings::get_settings(&app);
     settings.language_detection = mode;
     settings::write_settings(&app, settings);
+    tray::update_tray_menu(&app);
     Ok(())
 }
 
@@ -1135,6 +1175,43 @@ pub fn change_post_process_enabled_setting(app: AppHandle, enabled: bool) -> Res
     }
 
     crate::secure_input::reconcile_fallback(&app);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_continuous_dictation_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.continuous_dictation_enabled = enabled;
+    settings::write_settings(&app, settings.clone());
+
+    if let Some(binding) = settings
+        .bindings
+        .get(crate::continuous_dictation::BINDING_ID)
+        .cloned()
+    {
+        if enabled {
+            let _ = register_shortcut(&app, binding);
+        } else {
+            let _ = unregister_shortcut(&app, binding);
+            crate::continuous_dictation::stop(&app);
+        }
+    }
+
+    crate::secure_input::reconcile_fallback(&app);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_continuous_dictation_pause_setting(app: AppHandle, ms: u64) -> Result<(), String> {
+    let (min, max) = settings::CONTINUOUS_DICTATION_PAUSE_MS.into_inner();
+    let mut settings = settings::get_settings(&app);
+    settings.continuous_dictation_pause_ms = ms.clamp(min, max);
+    settings::write_settings(&app, settings);
     Ok(())
 }
 
