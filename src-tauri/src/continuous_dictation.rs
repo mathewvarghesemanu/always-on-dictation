@@ -7,7 +7,7 @@
 //! worker thread, which transcribes, post-processes and types the stretches
 //! in order while the microphone keeps listening.
 
-use crate::actions::process_transcription_output;
+use crate::actions::{complete_unless_cancelled, process_transcription_output};
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE;
 use crate::audio_toolkit::{SegmentCallback, VadPolicy};
@@ -261,11 +261,16 @@ fn type_segment(app: &AppHandle, mut samples: Vec<f32>, is_cancelled: impl Fn() 
     // mid-session takes effect on the next one.
     let settings = get_settings(app);
     let post_process = settings.post_process_enabled;
-    let processed = tauri::async_runtime::block_on(process_transcription_output(
-        app,
-        &transcription.text,
-        post_process,
-    ));
+    // A post-processing request has no overall timeout, so a hung LLM would
+    // keep the worker alive forever and lock out every dictation shortcut.
+    // Let a cancel abandon it.
+    let Some(processed) = tauri::async_runtime::block_on(complete_unless_cancelled(
+        process_transcription_output(app, &transcription.text, post_process),
+        &is_cancelled,
+    )) else {
+        debug!("Always-on dictation cancelled during post-processing");
+        return;
+    };
     if is_cancelled() {
         return;
     }

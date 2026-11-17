@@ -156,7 +156,7 @@ fn non_blank_post_processed_text(text: String) -> Option<String> {
     }
 }
 
-async fn complete_unless_cancelled<F, C>(operation: F, is_cancelled: C) -> Option<F::Output>
+pub(crate) async fn complete_unless_cancelled<F, C>(operation: F, is_cancelled: C) -> Option<F::Output>
 where
     F: Future,
     C: Fn() -> bool,
