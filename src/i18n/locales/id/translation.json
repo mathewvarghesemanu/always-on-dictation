@@ -968,6 +968,8 @@
     "noInputDevice": "Tidak ada perangkat masukan audio yang terdeteksi. Hubungkan mikrofon atau headset lalu coba lagi.",
     "microphoneSilentTitle": "Mikrofon Senyap",
     "microphoneSilent": "Mikrofon Anda hanya mengirim keheningan. Pastikan mikrofon tidak dibisukan, atau pilih mikrofon lain di Pengaturan.",
+    "microphoneLostTitle": "Mikrofon Terputus",
+    "microphoneLost": "Mikrofon Anda berhenti berfungsi, jadi dikte dihentikan. Mulai lagi untuk memakai mikrofon yang terhubung sekarang.",
     "recordingFailedTitle": "Gagal Memulai Perekaman",
     "modelLoadFailed": "Handy tidak dapat memuat model ini. Coba lagi atau pilih model lain.",
     "modelLoadFailedTitle": "Gagal Memuat Model",

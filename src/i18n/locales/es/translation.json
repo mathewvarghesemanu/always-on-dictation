@@ -968,6 +968,8 @@
     "noInputDevice": "No se detectó ningún dispositivo de entrada de audio. Conecta un micrófono o auriculares e inténtalo de nuevo.",
     "microphoneSilentTitle": "El micrófono está en silencio",
     "microphoneSilent": "Tu micrófono solo envió silencio. Comprueba que no esté silenciado o elige otro micrófono en Configuración.",
+    "microphoneLostTitle": "Micrófono desconectado",
+    "microphoneLost": "Tu micrófono dejó de funcionar, así que el dictado se detuvo. Vuelve a iniciarlo para usar el micrófono conectado ahora.",
     "recordingFailedTitle": "Error al iniciar la grabación",
     "modelLoadFailed": "Handy no pudo cargar este modelo. Inténtalo de nuevo o elige otro.",
     "modelLoadFailedTitle": "Error al cargar el modelo",

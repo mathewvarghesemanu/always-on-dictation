@@ -968,6 +968,8 @@
     "noInputDevice": "オーディオ入力デバイスが検出されませんでした。マイクまたはヘッドセットを接続してから再試行してください。",
     "microphoneSilentTitle": "マイクが無音です",
     "microphoneSilent": "マイクから無音しか届いていません。ミュートになっていないか確認するか、設定で別のマイクを選択してください。",
+    "microphoneLostTitle": "マイクが切断されました",
+    "microphoneLost": "マイクが動作しなくなったため、音声入力を停止しました。もう一度開始すると、現在接続されているマイクを使用します。",
     "recordingFailedTitle": "録音の開始に失敗しました",
     "modelLoadFailed": "このモデルを読み込めませんでした。もう一度試すか、別のモデルを選択してください。",
     "modelLoadFailedTitle": "モデルの読み込みに失敗しました",

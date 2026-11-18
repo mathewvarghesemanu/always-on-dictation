@@ -44,6 +44,7 @@ pub enum NoticeCode {
     PasteBlockedElevated,
     NoMicrophone,
     MicrophoneSilent,
+    MicrophoneLost,
     MicPermissionDenied,
     RecordingFailed,
     ModelLoadFailed,
@@ -61,6 +62,7 @@ impl NoticeCode {
             | Self::PasteBlockedElevated
             | Self::NoMicrophone
             | Self::MicrophoneSilent
+            | Self::MicrophoneLost
             | Self::MicPermissionDenied
             | Self::RecordingFailed
             | Self::ModelLoadFailed
@@ -78,6 +80,7 @@ impl NoticeCode {
             Self::PasteBlockedElevated => &strings.paste_blocked_elevated_title,
             Self::NoMicrophone => &strings.no_input_device_title,
             Self::MicrophoneSilent => &strings.microphone_silent_title,
+            Self::MicrophoneLost => &strings.microphone_lost_title,
             Self::MicPermissionDenied => &strings.mic_permission_denied_title,
             Self::RecordingFailed => &strings.recording_failed_title,
             Self::ModelLoadFailed => &strings.model_load_failed_title,

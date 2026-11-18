@@ -15,7 +15,7 @@ use crate::managers::audio::{recording_notice_code, AudioRecordingManager};
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::TranscriptionManager;
-use crate::notices::{self, Notice, NoticeSource};
+use crate::notices::{self, Notice, NoticeCode, NoticeSource};
 use crate::settings::get_settings;
 use crate::tray::{set_tray_state, TrayIconState};
 use crate::utils;
@@ -23,7 +23,7 @@ use log::{debug, error, info, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 
 pub const BINDING_ID: &str = "continuous_dictation";
@@ -34,13 +34,6 @@ const BUSY_EVENT: &str = "continuous-dictation-busy";
 
 /// How often the worker checks for a cancel while waiting for speech.
 const CANCEL_POLL_INTERVAL: Duration = Duration::from_millis(100);
-
-/// After the microphone fails mid-session, how long to keep trying to open
-/// one again before ending the session, and how long between tries. A
-/// microphone that drops out usually comes back, or the system switches to
-/// another, within a second or two.
-const REOPEN_TIMEOUT: Duration = Duration::from_secs(5);
-const REOPEN_RETRY_INTERVAL: Duration = Duration::from_secs(1);
 
 /// The listening session: present from start until stop or cancel.
 struct Session {
@@ -158,7 +151,7 @@ fn start(app: &AppHandle) {
     let app = app.clone();
     if let Err(e) = std::thread::Builder::new()
         .name("continuous-dictation".into())
-        .spawn(move || run_worker(app, rm, received, cancel_generation, pause_ms))
+        .spawn(move || run_worker(app, rm, received, cancel_generation))
     {
         error!("Failed to start the always-on dictation worker: {e}");
         WORKER_ALIVE.store(false, Ordering::SeqCst);
@@ -181,65 +174,30 @@ fn start_listening(
     rm.try_start_segmented_recording(BINDING_ID, VadPolicy::Offline, pause_ms, on_segment)
 }
 
-/// Where a session whose microphone failed stands after a try to reopen it.
-enum Reopen {
-    /// Listening again, or the session ended meanwhile: nothing left to do.
-    Done,
-    /// No microphone opened; worth another try until the timeout.
-    Failed(anyhow::Error),
-}
-
 /// The microphone under this session failed (unplugged, or it dropped out),
-/// so it hears nothing more: hand on what was said before the failure.
-fn hand_off_audio_before_failure(rm: &AudioRecordingManager, cancel_generation: u64) {
+/// so it hears nothing more: hand on what was said before the failure and
+/// end the session. The next start opens whichever microphone is there then.
+fn end_after_microphone_failure(rm: &AudioRecordingManager, cancel_generation: u64) {
     // A stop or cancel that got here first collects the audio itself.
-    let segments = match SESSION.lock().unwrap().as_ref() {
-        Some(s) if s.cancel_generation == cancel_generation => s.segments.clone(),
-        _ => return,
+    let Some(session) = ({
+        let mut session = SESSION.lock().unwrap();
+        if session
+            .as_ref()
+            .is_some_and(|s| s.cancel_generation == cancel_generation)
+        {
+            session.take()
+        } else {
+            None
+        }
+    }) else {
+        return;
     };
     if let Some(samples) = rm.stop_recording(BINDING_ID, cancel_generation) {
-        let _ = segments.send(samples);
+        let _ = session.segments.send(samples);
     }
-}
-
-/// Listens again on whichever microphone opens now: the same one if it came
-/// back, or the system default the OS switched to.
-fn reopen_microphone(
-    app: &AppHandle,
-    rm: &Arc<AudioRecordingManager>,
-    pause_ms: u64,
-    cancel_generation: u64,
-) -> Reopen {
-    // Held while the microphone opens, so a stop pressed meanwhile waits for
-    // this recording and stops it, instead of leaving it open with no session.
-    let session = SESSION.lock().unwrap();
-    let Some(session) = session
-        .as_ref()
-        .filter(|s| s.cancel_generation == cancel_generation)
-    else {
-        return Reopen::Done;
-    };
-    if rm.was_cancelled_since(cancel_generation) {
-        return Reopen::Done;
-    }
-    let readiness = match start_listening(rm, pause_ms, &session.segments) {
-        Ok(readiness) => readiness,
-        Err(e) => return Reopen::Failed(e),
-    };
-    info!("Always-on dictation is listening again after a microphone failure");
-
-    // Reopening restored any mute; put it back once audio flows again.
-    let generation = readiness.generation();
-    let app = app.clone();
-    let rm = Arc::clone(rm);
-    std::thread::spawn(move || {
-        if !readiness.wait() || !rm.is_recording_readiness_current(generation) {
-            return;
-        }
-        utils::emit_recording_ready(&app);
-        rm.apply_mute();
-    });
-    Reopen::Done
+    rm.remove_mute();
+    // Dropping the session's sender ends the worker once what was said
+    // before the failure is typed.
 }
 
 /// Types each stretch of speech in order until the session ends and its
@@ -249,12 +207,8 @@ fn run_worker(
     rm: Arc<AudioRecordingManager>,
     received: Receiver<Vec<f32>>,
     cancel_generation: u64,
-    pause_ms: u64,
 ) {
-    // Set while the microphone has failed and is being reopened: when the
-    // failure was found, and when the last try was.
-    let mut reopening: Option<(Instant, Option<Instant>)> = None;
-    // Shown in place of the overlay when the session ends without a microphone.
+    // Shown in place of the overlay when the microphone failed.
     let mut final_notice: Option<Notice> = None;
 
     loop {
@@ -276,39 +230,13 @@ fn run_worker(
 
         // A failed microphone sends nothing more, so without this the session
         // would sit there looking like it listens, typing nothing.
-        if reopening.is_none() && rm.recording_microphone_failed() {
-            warn!("The microphone failed during always-on dictation; reopening it");
-            hand_off_audio_before_failure(&rm, cancel_generation);
-            reopening = Some((Instant::now(), None));
-        }
-        if let Some((failed_at, last_try)) = reopening {
-            if last_try.is_some_and(|t| t.elapsed() < REOPEN_RETRY_INTERVAL) {
-                continue;
-            }
-            match reopen_microphone(&app, &rm, pause_ms, cancel_generation) {
-                Reopen::Done => reopening = None,
-                Reopen::Failed(e) if failed_at.elapsed() >= REOPEN_TIMEOUT => {
-                    error!("Ending always-on dictation: no microphone opened ({e:#})");
-                    final_notice = Some(
-                        Notice::new(recording_notice_code(&e), NoticeSource::Dictation)
-                            .with_detail(format!("{e:#}")),
-                    );
-                    // Dropping the session's sender ends the loop once what
-                    // was said before the failure is typed.
-                    let mut session = SESSION.lock().unwrap();
-                    if session
-                        .as_ref()
-                        .is_some_and(|s| s.cancel_generation == cancel_generation)
-                    {
-                        *session = None;
-                    }
-                    reopening = None;
-                }
-                Reopen::Failed(e) => {
-                    warn!("Couldn't reopen the microphone yet: {e:#}");
-                    reopening = Some((failed_at, Some(Instant::now())));
-                }
-            }
+        if final_notice.is_none() && rm.recording_microphone_failed() {
+            warn!("The microphone failed during always-on dictation; stopping it");
+            end_after_microphone_failure(&rm, cancel_generation);
+            final_notice = Some(Notice::new(
+                NoticeCode::MicrophoneLost,
+                NoticeSource::Dictation,
+            ));
         }
     }
 

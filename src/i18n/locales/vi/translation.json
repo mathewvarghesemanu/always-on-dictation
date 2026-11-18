@@ -968,6 +968,8 @@
     "noInputDevice": "Không phát hiện thiết bị đầu vào âm thanh nào. Vui lòng kết nối micrô hoặc tai nghe và thử lại.",
     "microphoneSilentTitle": "Micrô không có âm thanh",
     "microphoneSilent": "Micrô chỉ gửi về khoảng lặng. Hãy kiểm tra xem micrô có bị tắt tiếng không, hoặc chọn micrô khác trong Cài đặt.",
+    "microphoneLostTitle": "Micrô bị ngắt kết nối",
+    "microphoneLost": "Micrô đã ngừng hoạt động nên tính năng đọc chính tả đã dừng. Hãy bắt đầu lại để dùng micrô đang kết nối.",
     "recordingFailedTitle": "Không thể bắt đầu ghi âm",
     "modelLoadFailed": "Handy không thể tải mô hình này. Hãy thử lại hoặc chọn mô hình khác.",
     "modelLoadFailedTitle": "Không thể tải mô hình",

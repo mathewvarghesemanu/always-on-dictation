@@ -968,6 +968,8 @@
     "noInputDevice": "Nebylo detekováno žádné zvukové vstupní zařízení. Připojte mikrofon nebo sluchátka a zkuste to znovu.",
     "microphoneSilentTitle": "Mikrofon je tichý",
     "microphoneSilent": "Mikrofon posílá jen ticho. Zkontrolujte, že není ztlumený, nebo vyberte jiný mikrofon v Nastavení.",
+    "microphoneLostTitle": "Mikrofon odpojen",
+    "microphoneLost": "Mikrofon přestal fungovat, a proto se diktování zastavilo. Spusťte ho znovu a použije se právě připojený mikrofon.",
     "recordingFailedTitle": "Nepodařilo se spustit nahrávání",
     "modelLoadFailed": "Handy nemohl načíst tento model. Zkuste to znovu nebo vyberte jiný.",
     "modelLoadFailedTitle": "Nepodařilo se načíst model",

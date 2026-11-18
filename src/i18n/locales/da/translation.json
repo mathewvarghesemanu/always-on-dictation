@@ -968,6 +968,8 @@
     "noInputDevice": "Ingen lydinputenhed blev registreret. Tilslut en mikrofon eller et headset, og prøv igen.",
     "microphoneSilentTitle": "Mikrofonen er tavs",
     "microphoneSilent": "Mikrofonen sendte kun stilhed. Tjek, at den ikke er slået fra, eller vælg en anden mikrofon under Indstillinger.",
+    "microphoneLostTitle": "Mikrofon afbrudt",
+    "microphoneLost": "Mikrofonen holdt op med at virke, så diktering stoppede. Start den igen for at bruge den mikrofon, der er tilsluttet nu.",
     "recordingFailedTitle": "Kunne ikke starte optagelse",
     "modelLoadFailed": "Handy kunne ikke indlæse denne model. Prøv igen, eller vælg en anden.",
     "modelLoadFailedTitle": "Kunne ikke indlæse model",

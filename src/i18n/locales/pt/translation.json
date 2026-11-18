@@ -968,6 +968,8 @@
     "noInputDevice": "Nenhum dispositivo de entrada de áudio foi detectado. Conecte um microfone ou fone de ouvido e tente novamente.",
     "microphoneSilentTitle": "O microfone está mudo",
     "microphoneSilent": "Seu microfone enviou apenas silêncio. Verifique se ele não está silenciado ou escolha outro microfone em Configurações.",
+    "microphoneLostTitle": "Microfone desconectado",
+    "microphoneLost": "Seu microfone parou de funcionar, então o ditado foi interrompido. Inicie-o novamente para usar o microfone conectado agora.",
     "recordingFailedTitle": "Falha ao iniciar a gravação",
     "modelLoadFailed": "O Handy não conseguiu carregar este modelo. Tente novamente ou escolha outro.",
     "modelLoadFailedTitle": "Falha ao carregar o modelo",

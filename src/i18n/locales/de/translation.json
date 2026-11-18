@@ -968,6 +968,8 @@
     "noInputDevice": "Es wurde kein Audio-Eingabegerät erkannt. Bitte schließe ein Mikrofon oder Headset an und versuche es erneut.",
     "microphoneSilentTitle": "Mikrofon ist stumm",
     "microphoneSilent": "Dein Mikrofon hat nur Stille geliefert. Prüfe, ob es stummgeschaltet ist, oder wähle unter Einstellungen ein anderes Mikrofon.",
+    "microphoneLostTitle": "Mikrofon getrennt",
+    "microphoneLost": "Dein Mikrofon funktioniert nicht mehr, daher wurde das Diktieren beendet. Starte es erneut, um das jetzt verbundene Mikrofon zu nutzen.",
     "recordingFailedTitle": "Aufnahmestart fehlgeschlagen",
     "modelLoadFailed": "Handy konnte dieses Modell nicht laden. Versuche es erneut oder wähle ein anderes.",
     "modelLoadFailedTitle": "Modell konnte nicht geladen werden",

@@ -968,6 +968,8 @@
     "noInputDevice": "Er is geen audio-invoerapparaat gedetecteerd. Sluit een microfoon of headset aan en probeer het opnieuw.",
     "microphoneSilentTitle": "Microfoon is stil",
     "microphoneSilent": "Je microfoon stuurde alleen stilte. Controleer of hij niet gedempt is, of kies een andere microfoon via Instellingen.",
+    "microphoneLostTitle": "Microfoon losgekoppeld",
+    "microphoneLost": "Je microfoon werkt niet meer, dus het dicteren is gestopt. Start het opnieuw om de microfoon te gebruiken die nu is aangesloten.",
     "recordingFailedTitle": "Opname starten mislukt",
     "modelLoadFailed": "Handy kon dit model niet laden. Probeer het opnieuw of kies een ander model.",
     "modelLoadFailedTitle": "Model laden mislukt",

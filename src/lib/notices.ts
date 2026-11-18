@@ -29,6 +29,10 @@ const NOTICE_DISPLAY: Record<NoticeCode, NoticeDisplay> = {
     title: "errors.microphoneSilentTitle",
     explanation: (t) => t("errors.microphoneSilent"),
   },
+  MicrophoneLost: {
+    title: "errors.microphoneLostTitle",
+    explanation: (t) => t("errors.microphoneLost"),
+  },
   MicPermissionDenied: {
     title: "errors.micPermissionDeniedTitle",
     explanation: (t) =>
