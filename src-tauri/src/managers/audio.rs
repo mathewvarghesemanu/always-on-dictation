@@ -1257,6 +1257,19 @@ impl AudioRecordingManager {
         self.capture_generation.load(Ordering::Acquire) == generation
     }
 
+    /// Whether the microphone under the recording in progress has failed
+    /// (unplugged, or it dropped out). The recording itself stays open until
+    /// stopped, which keeps the audio captured before the failure.
+    pub fn recording_microphone_failed(&self) -> bool {
+        self.is_recording()
+            && self
+                .recorder
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_some_and(OpenMicrophone::needs_reopen)
+    }
+
     pub fn cancel_generation(&self) -> u64 {
         self.cancel_generation.load(Ordering::Acquire)
     }
